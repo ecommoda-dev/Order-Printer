@@ -832,9 +832,13 @@ async function printViaIframe(invoiceHTML, orderCount) {
 
       // Small delay to ensure barcodes + fonts are fully rendered
       setTimeout(() => {
+        // Temporarily override main page title — Edge/Chrome use it as PDF filename
+        const originalTitle = document.title;
+        document.title = suggestedName;
         try { iframe.contentWindow.print(); } catch (_) {}
-        // Clean up iframe after print dialog closes (2s grace)
+        // Restore title and clean up iframe after print dialog closes
         setTimeout(() => {
+          document.title = originalTitle;
           try { document.body.removeChild(iframe); } catch (_) {}
           resolve();
         }, 2000);
