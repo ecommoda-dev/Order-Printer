@@ -38,8 +38,6 @@ body {
   background: var(--bg); color: var(--text-primary);
   font-size: 14px; min-height: 100vh;
 }
-
-/* ── Header ── */
 .app-header {
   position: sticky; top: 0; z-index: 100;
   background: var(--surface); border-bottom: 1px solid var(--border);
@@ -50,8 +48,6 @@ body {
 .header-brand h1 { font-size: 17px; font-weight: 700; }
 .header-subtitle { font-size: 11px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-
-/* ── Tabs ── */
 .tabs { display: flex; align-items: stretch; margin-right: 24px; }
 .tab-btn {
   padding: 14px 20px; font-family: inherit; font-size: 13px; font-weight: 600;
@@ -61,8 +57,6 @@ body {
 }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-btn:hover:not(.active) { color: var(--text-primary); background: var(--surface-2); }
-
-/* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--radius-sm);
@@ -77,13 +71,9 @@ body {
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { background: #b91c1c; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-/* ── Main ── */
 .main { padding: 20px; max-width: 1300px; margin: 0 auto; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
-
-/* ── States ── */
 .state-box {
   background: var(--surface); border-radius: var(--radius);
   padding: 60px 20px; text-align: center;
@@ -98,13 +88,10 @@ body {
   border-radius: 50%; animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── KPI Grid ── */
 .kpi-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
   margin-bottom: 20px;
 }
-.kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .kpi-card {
   background: var(--surface); border-radius: var(--radius);
   padding: 16px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
@@ -115,8 +102,6 @@ body {
 .kpi-card.green  .kpi-value { color: var(--green); }
 .kpi-card.amber  .kpi-value { color: var(--amber); }
 .kpi-card.red    .kpi-value { color: var(--red); }
-
-/* ── Toolbar ── */
 .toolbar {
   background: var(--surface); border-radius: var(--radius);
   padding: 12px 16px; margin-bottom: 16px;
@@ -135,16 +120,12 @@ input[type="text"], input[type="date"], select {
 input:focus, select:focus { border-color: var(--accent); }
 .order-search { font-family: 'IBM Plex Mono', monospace; direction: ltr; width: 120px; }
 .result-count { font-size: 12px; color: var(--text-muted); }
-
-/* ── Print Bar ── */
 .print-bar {
   background: var(--accent-light); border: 1px solid var(--accent);
   border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
   display: flex; align-items: center; gap: 12px;
 }
 .print-bar-info { font-size: 13px; font-weight: 600; color: var(--accent); }
-
-/* ── Table ── */
 .table-card {
   background: var(--surface); border-radius: var(--radius);
   box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden;
@@ -163,7 +144,6 @@ td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align:
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface-2); }
 tr.selected td { background: var(--accent-light); }
-
 .mono { font-family: 'IBM Plex Mono', monospace; direction: ltr; display: inline-block; }
 .type-badge {
   display: inline-flex; align-items: center;
@@ -181,11 +161,8 @@ tr.selected td { background: var(--accent-light); }
 .count-1 { background: var(--green-light); color: var(--green); }
 .count-2 { background: var(--amber-light); color: var(--amber); }
 .count-3 { background: var(--red-light);   color: var(--red); }
-
 .table-empty { text-align: center; padding: 50px; color: var(--text-muted); }
 .table-footer { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
-
-/* ── Modal ── */
 .overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
   z-index: 200; display: none; align-items: center; justify-content: center;
@@ -208,8 +185,6 @@ tr.selected td { background: var(--accent-light); }
 }
 .form-input:focus { border-color: var(--accent); }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-/* ── Confirm Modal ── */
 .confirm-modal { width: 480px; }
 .confirm-warning-box {
   background: var(--red-light); border: 1px solid var(--red-border);
@@ -228,8 +203,6 @@ tr.selected td { background: var(--accent-light); }
 .confirm-order-num { font-family: 'IBM Plex Mono', monospace; font-weight: 700; }
 .confirm-order-meta { color: var(--text-secondary); font-size: 12px; }
 .confirm-question { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 12px; }
-
-/* ── Print Loading ── */
 .print-loading-overlay {
   position: fixed; inset: 0; background: rgba(255,255,255,.95);
   z-index: 300; display: none; align-items: center; justify-content: center;
@@ -237,12 +210,8 @@ tr.selected td { background: var(--accent-light); }
 }
 .print-loading-overlay.show { display: flex; }
 .print-loading-msg { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-
 input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-
 @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-
-/* ── Print styles ── */
 @media print {
   .app-header, .main, .overlay, .print-loading-overlay { display: none !important; }
   .print-container { display: block !important; }
@@ -256,8 +225,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   max-width: 800px; margin: 0 auto;
 }
 .invoice-page:last-child { page-break-after: auto; }
-
-/* ── Count Toggle Group ── */
 .count-toggle-group {
   display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   overflow: hidden;
@@ -274,7 +241,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 </head>
 <body>
 
-<!-- ── Header ── -->
 <header class="app-header">
   <div style="display:flex; align-items:center; gap:0;">
     <div class="header-brand">
@@ -296,12 +262,8 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
 </header>
 
-<!-- ── Main ── -->
 <main class="main">
-
-  <!-- ══ TAB: PRINT ══ -->
   <div class="tab-panel active" id="tab-print">
-
     <div id="printLoadingState" class="state-box" style="display:none;">
       <div class="spinner"></div>
       <p class="state-msg">جاري جلب الأوردرات...</p>
@@ -311,10 +273,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <p id="printErrorMsg" class="state-msg">فشل الاتصال</p>
       <button class="btn btn-ghost" onclick="loadOrders(true)">إعادة المحاولة</button>
     </div>
-
     <div id="printDashboard" style="display:none;">
-
-      <!-- KPIs — 2 cards only -->
       <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:20px;">
         <div class="kpi-card">
           <div class="kpi-value" id="kpiS1">0</div>
@@ -325,8 +284,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <div class="kpi-label">استبدال/استرجاع (S2)</div>
         </div>
       </div>
-
-      <!-- Print Bar -->
       <div class="print-bar" id="printBar" style="display:flex;">
         <span class="print-bar-info" id="selectedInfo">لم يتم تحديد أي أوردر</span>
         <div style="flex:1;"></div>
@@ -334,8 +291,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <button class="btn btn-ghost" onclick="printAll()">🖨️ طباعة الكل</button>
         <button class="btn btn-primary" id="printSelectedBtn" onclick="startPrint()" style="display:none;">🖨️ طباعة المحدد</button>
       </div>
-
-      <!-- Filters -->
       <div class="toolbar">
         <div class="filter-group">
           <span class="filter-label">#أوردر</span>
@@ -361,8 +316,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <div class="spacer"></div>
         <span class="result-count" id="printResultCount"></span>
       </div>
-
-      <!-- Table -->
       <div class="table-card">
         <div class="table-wrap">
           <table>
@@ -388,9 +341,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     </div>
   </div>
 
-  <!-- ══ TAB: LOGS ══ -->
   <div class="tab-panel" id="tab-logs">
-
     <div id="logsLoadingState" class="state-box" style="display:none;">
       <div class="spinner"></div>
       <p class="state-msg">جاري جلب سجل الطباعة...</p>
@@ -400,10 +351,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <p id="logsErrorMsg" class="state-msg">فشل الاتصال</p>
       <button class="btn btn-ghost" onclick="loadLogs()">إعادة المحاولة</button>
     </div>
-
     <div id="logsDashboard" style="display:none;">
-
-      <!-- KPIs -->
       <div class="kpi-grid" style="margin-bottom:20px;">
         <div class="kpi-card accent">
           <div class="kpi-value" id="logKpiTotal">0</div>
@@ -430,8 +378,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <div class="kpi-label">أوردرات فريدة</div>
         </div>
       </div>
-
-      <!-- Filters -->
       <div class="toolbar">
         <div class="filter-group">
           <span class="filter-label">#أوردر</span>
@@ -466,8 +412,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <button class="btn btn-ghost btn-sm" onclick="exportLogsXLSX()">📥 تصدير</button>
         <span class="result-count" id="logResultCount"></span>
       </div>
-
-      <!-- Table -->
       <div class="table-card">
         <div class="table-wrap">
           <table>
@@ -487,19 +431,15 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       </div>
     </div>
   </div>
-
 </main>
 
-<!-- ── Print Container ── -->
 <div class="print-container" id="printContainer"></div>
 
-<!-- ── Print Loading ── -->
 <div class="print-loading-overlay" id="printLoadingOverlay">
   <div class="spinner"></div>
   <p class="print-loading-msg" id="printLoadingMsg">جاري تحضير الفواتير...</p>
 </div>
 
-<!-- ── Settings Modal ── -->
 <div class="overlay" id="settingsOverlay">
   <div class="modal">
     <div class="modal-header">
@@ -521,7 +461,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
 </div>
 
-<!-- ── Confirm Reprint Modal ── -->
 <div class="overlay" id="confirmOverlay">
   <div class="modal confirm-modal">
     <div class="modal-header">
@@ -544,9 +483,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════════════════
-// Config
-// ══════════════════════════════════════════════════════════════════════════════
 const CFG_KEY = "order_printer_v1_config";
 function getConfig() { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; } }
 function saveConfig(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
@@ -568,9 +504,6 @@ function saveSettings() {
   loadOrders(true);
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Tabs
-// ══════════════════════════════════════════════════════════════════════════════
 let currentTab   = "print";
 let logsLoaded   = false;
 let lastUpdatedText = "";
@@ -584,14 +517,8 @@ function switchTab(tab, btn) {
   document.getElementById("lastUpdated").textContent = lastUpdatedText;
   if (tab === "logs" && !logsLoaded) loadLogs();
 }
-function handleRefresh() {
-  loadOrders(true);
-  loadLogs();
-}
+function handleRefresh() { loadOrders(true); loadLogs(); }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// API
-// ══════════════════════════════════════════════════════════════════════════════
 async function apiPost(path, body = {}) {
   const { workerUrl, secret } = getConfig();
   const resp = await fetch(`${workerUrl}${path}`, {
@@ -604,14 +531,9 @@ async function apiPost(path, body = {}) {
   return data;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PRINT TAB
-// ══════════════════════════════════════════════════════════════════════════════
 let allOrders      = [];
 let filteredOrders = [];
 let selectedIds    = new Set();
-
-// printCountsMap: orderNumber -> count (from logs)
 let printCountsMap = {};
 
 function showPrint(id) {
@@ -625,26 +547,20 @@ async function loadOrders(forceRefresh = false) {
   if (!isConfigured()) { openSettings(); return; }
   showPrint("printLoadingState");
   try {
-    // Load orders and logs in parallel for print counts
     const [ordersData, logsData] = await Promise.all([
       apiPost("/orders", { forceRefresh }),
       apiPost("/logs", {}),
     ]);
-
     allOrders = ordersData.orders || [];
     selectedIds.clear();
-
-    // Build print counts from logs
     const logEntries = logsData.entries || [];
     printCountsMap = {};
     for (const e of logEntries) {
       printCountsMap[e.orderNumber] = (printCountsMap[e.orderNumber] || 0) + 1;
     }
-    // Also sync logs state
     allLogs = logEntries;
     logsLoaded = true;
     buildLogPrintCounts();
-
     updatePrintKPIs();
     applyPrintFilters();
     lastUpdatedText = "آخر تحديث: " + formatDateTime(new Date().toISOString());
@@ -660,23 +576,20 @@ function getPrintCount(order) {
   const num = order.name.replace("#","");
   return printCountsMap[num] || 0;
 }
-
 function updatePrintKPIs() {
   document.getElementById("kpiS1").textContent = allOrders.filter(o=>o.type==="S1").length.toLocaleString("en-US");
   document.getElementById("kpiS2").textContent = allOrders.filter(o=>o.type==="S2").length.toLocaleString("en-US");
 }
 
-// Active count filters (multi-select toggles)
-let activeCountFilters = new Set(["0"]); // default: show unprinted
+let activeCountFilters = new Set(["0"]);
 
 function toggleCountFilter(val) {
   if (activeCountFilters.has(val)) {
-    if (activeCountFilters.size === 1) return; // keep at least one active
+    if (activeCountFilters.size === 1) return;
     activeCountFilters.delete(val);
   } else {
     activeCountFilters.add(val);
   }
-  // Update button styles
   document.querySelectorAll(".count-toggle").forEach(btn => {
     btn.classList.toggle("active", activeCountFilters.has(btn.dataset.val));
   });
@@ -686,12 +599,9 @@ function toggleCountFilter(val) {
 function applyPrintFilters() {
   const orderQ = document.getElementById("filterOrder").value.trim().replace("#","");
   const typeQ  = document.getElementById("filterType").value;
-
   filteredOrders = allOrders;
   if (orderQ)          filteredOrders = filteredOrders.filter(o => o.name.replace("#","").includes(orderQ));
   if (typeQ !== "all") filteredOrders = filteredOrders.filter(o => o.type === typeQ);
-
-  // Count filter — multi-select
   const all3 = activeCountFilters.has("0") && activeCountFilters.has("1") && activeCountFilters.has("2+");
   if (!all3) {
     filteredOrders = filteredOrders.filter(o => {
@@ -702,7 +612,6 @@ function applyPrintFilters() {
       return false;
     });
   }
-
   document.getElementById("printResultCount").textContent = filteredOrders.length.toLocaleString("en-US") + " نتيجة";
   renderPrintTable();
   updatePrintBar();
@@ -711,7 +620,6 @@ function applyPrintFilters() {
 function clearPrintFilters() {
   document.getElementById("filterOrder").value = "";
   document.getElementById("filterType").value  = "all";
-  // Reset toggles to default (0 only)
   activeCountFilters = new Set(["0"]);
   document.querySelectorAll(".count-toggle").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.val === "0");
@@ -723,7 +631,6 @@ function renderPrintTable() {
   const tbody  = document.getElementById("printTableBody");
   const empty  = document.getElementById("printTableEmpty");
   const footer = document.getElementById("printTableFooter");
-
   if (!filteredOrders.length) {
     tbody.innerHTML = "";
     empty.style.display = "block";
@@ -731,7 +638,6 @@ function renderPrintTable() {
     return;
   }
   empty.style.display = "none";
-
   tbody.innerHTML = filteredOrders.map(o => {
     const count      = getPrintCount(o);
     const checked    = selectedIds.has(o.id) ? "checked" : "";
@@ -739,8 +645,6 @@ function renderPrintTable() {
     const typeLabel  = o.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي";
     const typeClass  = o.type === "S2" ? "type-s2" : "type-s1";
     const countClass = count === 0 ? "count-0" : count === 1 ? "count-1" : count === 2 ? "count-2" : "count-3";
-    const countLabel = count;
-
     return `<tr class="${rowClass}" onclick="toggleRow('${o.id}', event)">
       <td class="center" onclick="event.stopPropagation()">
         <input type="checkbox" ${checked} onchange="toggleRow('${o.id}', event)">
@@ -750,10 +654,9 @@ function renderPrintTable() {
       <td style="font-size:12px;">${formatDate(o.createdAt)}</td>
       <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
       <td style="font-size:12px;">${statusCell(o.status)}</td>
-      <td class="center"><span class="count-badge ${countClass}">${countLabel}</span></td>
+      <td class="center"><span class="count-badge ${countClass}">${count}</span></td>
     </tr>`;
   }).join("");
-
   footer.textContent = `عرض ${filteredOrders.length.toLocaleString("en-US")} من ${allOrders.length.toLocaleString("en-US")} أوردر`;
 }
 
@@ -776,8 +679,6 @@ function updatePrintBar() {
   const count = selectedIds.size;
   const s1c = [...selectedIds].filter(id => allOrders.find(o=>o.id===id)?.type==="S1").length;
   const s2c = [...selectedIds].filter(id => allOrders.find(o=>o.id===id)?.type==="S2").length;
-
-  // Always visible — update info text
   let info = count === 0 ? "لم يتم تحديد أي أوردر" : `${count} أوردر محدد`;
   if (count > 0) {
     if (s1c && s2c)   info += ` (${s1c} عادي + ${s2c} استبدال)`;
@@ -785,51 +686,36 @@ function updatePrintBar() {
     else if (s2c)     info += ` (${s2c} استبدال)`;
   }
   document.getElementById("selectedInfo").textContent = info;
-
-  // Show/hide selection-dependent buttons
   const hasSelection = count > 0;
   document.getElementById("printSelectedBtn").style.display = hasSelection ? "inline-flex" : "none";
   document.getElementById("clearSelBtn").style.display     = hasSelection ? "inline-flex" : "none";
 }
 
 function printAll() {
-  // Select all filtered orders and print
   filteredOrders.forEach(o => selectedIds.add(o.id));
   applyPrintFilters();
   startPrint();
 }
 
-// ── Print Flow ──
 let pendingPrintOrders = null;
 
 async function startPrint() {
   if (!selectedIds.size) return;
   const selected = allOrders.filter(o => selectedIds.has(o.id));
-
-  // Check for previously printed orders
   const alreadyPrinted = selected.filter(o => getPrintCount(o) > 0);
-
-  if (alreadyPrinted.length > 0) {
-    showConfirmReprint(alreadyPrinted, selected);
-    return;
-  }
-
+  if (alreadyPrinted.length > 0) { showConfirmReprint(alreadyPrinted, selected); return; }
   await executePrint(selected);
 }
 
 function showConfirmReprint(alreadyPrinted, allSelected) {
   pendingPrintOrders = allSelected;
-
   const title = alreadyPrinted.length === 1
     ? `الأوردر التالي سبق طباعته:`
     : `الأوردرات التالية (${alreadyPrinted.length}) سبق طباعتها:`;
   document.getElementById("confirmWarningTitle").textContent = title;
-
-  // Build order items list
   const list = document.getElementById("confirmOrdersList");
   list.innerHTML = alreadyPrinted.map(o => {
     const count = getPrintCount(o);
-    // Find last print entry for this order
     const num   = o.name.replace("#","");
     const lastEntry = allLogs.filter(e => e.orderNumber === num)
       .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
@@ -839,20 +725,16 @@ function showConfirmReprint(alreadyPrinted, allSelected) {
       <span class="confirm-order-meta">طُبع ${count} ${count === 1 ? "مرة" : "مرات"} — آخرها: ${lastTime}</span>
     </div>`;
   }).join("");
-
-  // Set confirm button action
   const btn = document.getElementById("confirmPrintBtn");
   const newBtn = btn.cloneNode(true);
   btn.parentNode.replaceChild(newBtn, btn);
   newBtn.addEventListener("click", () => {
-    const ordersToprint = pendingPrintOrders; // capture before closeConfirm nulls it
+    const ordersToprint = pendingPrintOrders;
     closeConfirm();
     executePrint(ordersToprint);
   });
-
   document.getElementById("confirmOverlay").classList.add("open");
 }
-
 function closeConfirm() {
   document.getElementById("confirmOverlay").classList.remove("open");
   pendingPrintOrders = null;
@@ -860,18 +742,15 @@ function closeConfirm() {
 
 async function executePrint(selectedOrders) {
   showPrintLoading(`جاري تحضير ${selectedOrders.length} فاتورة...`);
-
   try {
     const invoices = await Promise.all(
       selectedOrders.map(o => apiPost("/invoice", { orderId: o.id }).then(d => d.invoice))
     );
-
     showPrintLoading("جاري رسم الفواتير...");
     const container = document.getElementById("printContainer");
     container.innerHTML = invoices.map(inv =>
       inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)
     ).join("");
-
     container.querySelectorAll("svg[data-barcode-value]").forEach(el => {
       try {
         JsBarcode(el, el.getAttribute("data-barcode-value"), {
@@ -879,18 +758,13 @@ async function executePrint(selectedOrders) {
         });
       } catch (_) {}
     });
-
-    // Track — parallel
     await Promise.all(
       invoices.map(inv =>
         apiPost("/track", { orderId: inv.id, orderNumber: inv.name, type: inv.type }).catch(() => {})
       )
     );
-
     hidePrintLoading();
     window.print();
-
-    // Update print counts locally (optimistic)
     for (const inv of invoices) {
       const num = inv.name.replace("#","");
       printCountsMap[num] = (printCountsMap[num] || 0) + 1;
@@ -898,14 +772,11 @@ async function executePrint(selectedOrders) {
     clearSelection();
     updatePrintKPIs();
     applyPrintFilters();
-
-    // Auto-refresh from Shopify after 5s (status changed to Ready)
     showPrintLoading("تم الطباعة ✓ جاري تحديث القائمة...");
     await new Promise(r => setTimeout(r, 5000));
     hidePrintLoading();
     await loadOrders(true);
     if (logsLoaded) loadLogs();
-
   } catch (err) {
     hidePrintLoading();
     alert("خطأ: " + err.message);
@@ -920,11 +791,8 @@ function hidePrintLoading() {
   document.getElementById("printLoadingOverlay").classList.remove("show");
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// LOGS TAB
-// ══════════════════════════════════════════════════════════════════════════════
 let allLogs      = [];
-let logCounts    = {}; // orderNumber -> count (from allLogs)
+let logCounts    = {};
 let filteredLogs = [];
 
 function showLogs(id) {
@@ -942,7 +810,6 @@ async function loadLogs() {
     allLogs    = data.entries || [];
     logsLoaded = true;
     buildLogPrintCounts();
-    // Sync printCountsMap for print tab
     printCountsMap = { ...logCounts };
     updateLogKPIs();
     applyLogFilters();
@@ -955,17 +822,15 @@ async function loadLogs() {
     showLogs("logsErrorState");
   }
 }
-
 function buildLogPrintCounts() {
   logCounts = {};
   for (const e of allLogs) {
     logCounts[e.orderNumber] = (logCounts[e.orderNumber] || 0) + 1;
   }
 }
-
 function updateLogKPIs() {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const today    = allLogs.filter(e => e.timestamp.startsWith(todayStr));
+  const todayStr   = new Date().toISOString().slice(0, 10);
+  const today      = allLogs.filter(e => e.timestamp.startsWith(todayStr));
   const dupOrders  = Object.values(logCounts).filter(c => c > 1).length;
   const uniqOrders = Object.keys(logCounts).length;
   document.getElementById("logKpiTotal").textContent = allLogs.length.toLocaleString("en-US");
@@ -975,14 +840,12 @@ function updateLogKPIs() {
   document.getElementById("logKpiDup").textContent   = dupOrders.toLocaleString("en-US");
   document.getElementById("logKpiUniq").textContent  = uniqOrders.toLocaleString("en-US");
 }
-
 function applyLogFilters() {
   const orderQ = document.getElementById("logFilterOrder").value.trim().replace("#","");
   const typeQ  = document.getElementById("logFilterType").value;
   const countQ = document.getElementById("logFilterCount").value;
   const fromQ  = document.getElementById("logFilterFrom").value;
   const toQ    = document.getElementById("logFilterTo").value;
-
   filteredLogs = allLogs;
   if (orderQ)           filteredLogs = filteredLogs.filter(e => e.orderNumber.includes(orderQ));
   if (typeQ !== "all")  filteredLogs = filteredLogs.filter(e => e.type === typeQ);
@@ -990,11 +853,9 @@ function applyLogFilters() {
   if (countQ === "2+")  filteredLogs = filteredLogs.filter(e => (logCounts[e.orderNumber]||1) >= 2);
   if (fromQ) filteredLogs = filteredLogs.filter(e => new Date(e.timestamp).getTime() >= new Date(fromQ).getTime());
   if (toQ)   filteredLogs = filteredLogs.filter(e => new Date(e.timestamp).getTime() <= new Date(toQ+"T23:59:59").getTime());
-
   document.getElementById("logResultCount").textContent = filteredLogs.length.toLocaleString("en-US") + " نتيجة";
   renderLogsTable();
 }
-
 function clearLogFilters() {
   document.getElementById("logFilterOrder").value = "";
   document.getElementById("logFilterType").value  = "all";
@@ -1003,12 +864,10 @@ function clearLogFilters() {
   document.getElementById("logFilterTo").value    = "";
   applyLogFilters();
 }
-
 function renderLogsTable() {
   const tbody  = document.getElementById("logsTableBody");
   const empty  = document.getElementById("logsTableEmpty");
   const footer = document.getElementById("logsTableFooter");
-
   if (!filteredLogs.length) {
     tbody.innerHTML = "";
     empty.style.display = "block";
@@ -1016,7 +875,6 @@ function renderLogsTable() {
     return;
   }
   empty.style.display = "none";
-
   tbody.innerHTML = filteredLogs.map(e => {
     const count      = logCounts[e.orderNumber] || 1;
     const countClass = count === 1 ? "count-1" : count === 2 ? "count-2" : "count-3";
@@ -1029,10 +887,8 @@ function renderLogsTable() {
       <td class="center"><span class="count-badge ${countClass}">${count}</span></td>
     </tr>`;
   }).join("");
-
   footer.textContent = `عرض ${filteredLogs.length.toLocaleString("en-US")} من إجمالي ${allLogs.length.toLocaleString("en-US")} عملية`;
 }
-
 async function exportLogsXLSX() {
   if (!filteredLogs.length) { alert("لا توجد بيانات للتصدير"); return; }
   const wb = new ExcelJS.Workbook();
@@ -1089,8 +945,7 @@ function renderS1Invoice(inv) {
       <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${pc}</td>
     </tr>`;
   }).join("");
-  const shippingCell = isPrepaid ? `<s>${money(inv.shippingPrice)}</s>` : money(inv.shippingPrice);
-  const totalCell    = isPrepaid
+  const totalCell = isPrepaid
     ? `<div><s>${money(inv.totalPrice)}</s></div><div>${money(inv.totalOutstanding)}</div>`
     : money(inv.totalPrice);
   const refundedRow = inv.totalRefunded > 0
@@ -1133,12 +988,14 @@ function renderS1Invoice(inv) {
 
 function renderS2Invoice(inv) {
   const numericId = inv.id.replace("gid://shopify/Order/", "");
+
+  // Exchange table — ✅SKU✅ على الـ header
   const exchangeHTML = inv.exchangeItems.length > 0 ? `
     <table style="margin-top:16px;width:100%;border-collapse:collapse;border:1px solid #000;table-layout:fixed;font-size:14px;font-weight:700;">
       <thead><tr>
         <th style="border:1px solid #000;padding:10px 8px;width:55px;text-align:center;">Qty</th>
         <th style="border:1px solid #000;padding:10px 8px;width:55%;text-align:center;overflow-wrap:anywhere;">Exchange items</th>
-        <th style="border:1px solid #000;padding:10px 8px;width:170px;text-align:center;">SKU</th>
+        <th style="border:1px solid #000;padding:10px 8px;width:170px;text-align:center;">✅SKU✅</th>
         <th style="border:1px solid #000;padding:10px 8px;width:90px;text-align:center;">Price</th>
       </tr></thead>
       <tbody>${inv.exchangeItems.map(li => {
@@ -1148,25 +1005,27 @@ function renderS2Invoice(inv) {
         return `<tr>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${li.quantity}</td>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;overflow-wrap:anywhere;word-break:break-word;">
-        ${escHtml(li.title)}
-        ${(li.discountAllocations && li.discountAllocations.length > 0)
-          ? li.discountAllocations.map(da =>
-              '<br><span style="font-weight:400;font-size:12px;color:#555;">'
-              + escHtml(da.label) + ' (-' + money(da.amount) + ')</span>'
-            ).join('')
-          : ''}
-      </td>
+            ${escHtml(li.title)}
+            ${(li.discountAllocations && li.discountAllocations.length > 0)
+              ? li.discountAllocations.map(da =>
+                  '<br><span style="font-weight:400;font-size:12px;color:#555;">'
+                  + escHtml(da.label) + ' (-' + money(da.amount) + ')</span>'
+                ).join('')
+              : ''}
+          </td>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${li.sku||"—"}</td>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${pc}</td>
         </tr>`;
       }).join("")}</tbody>
     </table>` : "";
+
+  // Return table — ❌SKU❌ على الـ header + strikethrough على قيم الـ SKU
   const returnHTML = inv.returnItems.length > 0 ? `
     <table style="margin-top:16px;width:100%;border-collapse:collapse;border:1px solid #000;table-layout:fixed;font-size:14px;font-weight:700;">
       <thead><tr>
         <th style="border:1px solid #000;padding:10px 8px;width:55px;text-align:center;">Qty</th>
         <th style="border:1px solid #000;padding:10px 8px;width:50%;text-align:center;overflow-wrap:anywhere;">Return items</th>
-        <th style="border:1px solid #000;padding:10px 8px;width:140px;text-align:center;">SKU</th>
+        <th style="border:1px solid #000;padding:10px 8px;width:140px;text-align:center;">❌SKU❌</th>
         <th style="border:1px solid #000;padding:10px 8px;width:90px;text-align:center;">Price</th>
       </tr></thead>
       <tbody>${inv.returnItems.map(li => {
@@ -1176,15 +1035,15 @@ function renderS2Invoice(inv) {
         return `<tr>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${li.quantity}</td>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;overflow-wrap:anywhere;word-break:break-word;">
-        ${escHtml(li.title)}
-        ${(li.discountAllocations && li.discountAllocations.length > 0)
-          ? li.discountAllocations.map(da =>
-              '<br><span style="font-weight:400;font-size:12px;color:#555;">'
-              + escHtml(da.label) + ' (-' + money(da.amount) + ')</span>'
-            ).join('')
-          : ''}
-      </td>
-          <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${li.sku||"—"}</td>
+            ${escHtml(li.title)}
+            ${(li.discountAllocations && li.discountAllocations.length > 0)
+              ? li.discountAllocations.map(da =>
+                  '<br><span style="font-weight:400;font-size:12px;color:#555;">'
+                  + escHtml(da.label) + ' (-' + money(da.amount) + ')</span>'
+                ).join('')
+              : ''}
+          </td>
+          <td style="border:1px solid #000;padding:10px 8px;text-align:center;"><s>${li.sku||"—"}</s></td>
           <td style="border:1px solid #000;padding:10px 8px;text-align:center;">${pc}</td>
         </tr>`;
       }).join("")}</tbody>
@@ -1193,11 +1052,12 @@ function renderS2Invoice(inv) {
       <thead><tr>
         <th style="border:1px solid #000;padding:10px 8px;width:55px;text-align:center;">Qty</th>
         <th style="border:1px solid #000;padding:10px 8px;width:50%;text-align:center;">Return items</th>
-        <th style="border:1px solid #000;padding:10px 8px;width:140px;text-align:center;">SKU</th>
+        <th style="border:1px solid #000;padding:10px 8px;width:140px;text-align:center;">❌SKU❌</th>
         <th style="border:1px solid #000;padding:10px 8px;width:90px;text-align:center;">Price</th>
       </tr></thead>
       <tbody><tr><td colspan="4" style="border:1px solid #000;padding:10px 8px;text-align:center;">No return items found for this order.</td></tr></tbody>
     </table>`;
+
   const returnShipping = inv.returnShippingFees != null ? money(inv.returnShippingFees) : "—";
   return `<div class="invoice-page">
     ${renderInvoiceHeader("Return / Exchange Invoice", formatInvoiceDate(inv.createdAt))}
@@ -1282,9 +1142,6 @@ function renderFooter() {
   </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Helpers
-// ══════════════════════════════════════════════════════════════════════════════
 function statusCell(status) {
   if (status === "Confirmed + Edit") {
     return '<span style="display:inline-flex;align-items:center;gap:4px;">'
@@ -1294,7 +1151,6 @@ function statusCell(status) {
   }
   return escHtml(status);
 }
-
 function money(n) {
   const v = parseFloat(n) || 0;
   return v % 1 === 0 ? v.toLocaleString("en-US") : v.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -1318,19 +1174,13 @@ function formatInvoiceDate(iso) {
   return new Date(iso).toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Init
-// ══════════════════════════════════════════════════════════════════════════════
 window.addEventListener("load", () => {
-  // Always start on print tab
   currentTab = "print";
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach((b,i) => { if(i===0) b.classList.add("active"); });
   document.getElementById("tab-print").classList.add("active");
-
   if (!isConfigured()) { openSettings(); return; }
-  // Load both tabs on startup — logs tab never appears empty
   loadOrders();
   loadLogs();
 });
