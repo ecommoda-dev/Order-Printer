@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<!-- iframe + print — no extra library needed -->
 <style>
 :root {
   --bg:           #f3f4f6;
@@ -747,24 +748,16 @@ async function executePrint(selectedOrders) {
       selectedOrders.map(o => apiPost("/invoice", { orderId: o.id }).then(d => d.invoice))
     );
     showPrintLoading("جاري رسم الفواتير...");
-    const container = document.getElementById("printContainer");
-    container.innerHTML = invoices.map(inv =>
+    const invoiceHTML = invoices.map(inv =>
       inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)
     ).join("");
-    container.querySelectorAll("svg[data-barcode-value]").forEach(el => {
-      try {
-        JsBarcode(el, el.getAttribute("data-barcode-value"), {
-          format: "CODE128", width: 1.5, height: 50, displayValue: false, margin: 0,
-        });
-      } catch (_) {}
-    });
     await Promise.all(
       invoices.map(inv =>
         apiPost("/track", { orderId: inv.id, orderNumber: inv.name, type: inv.type }).catch(() => {})
       )
     );
-    hidePrintLoading();
-    window.print();
+    showPrintLoading("جاري فتح نافذة الطباعة...");
+    await printViaIframe(invoiceHTML, invoices.length);
     for (const inv of invoices) {
       const num = inv.name.replace("#","");
       printCountsMap[num] = (printCountsMap[num] || 0) + 1;
@@ -772,7 +765,7 @@ async function executePrint(selectedOrders) {
     clearSelection();
     updatePrintKPIs();
     applyPrintFilters();
-    showPrintLoading("تم الطباعة ✓ جاري تحديث القائمة...");
+    showPrintLoading("تم الإرسال للطباعة ✓ جاري تحديث القائمة...");
     await new Promise(r => setTimeout(r, 5000));
     hidePrintLoading();
     await loadOrders(true);
@@ -781,6 +774,77 @@ async function executePrint(selectedOrders) {
     hidePrintLoading();
     alert("خطأ: " + err.message);
   }
+}
+
+// ── iframe Print ─────────────────────────────────────────────────────────────
+// بيفتح نافذة الطباعة مع محتوى الفواتير فقط (بدون الـ UI).
+// المستخدم يختار "Save as PDF" من الـ print dialog.
+// الجودة مثالية — الـ browser نفسه بيرسم الـ PDF.
+// اسم الملف المقترح بيتحدد من عنوان الـ iframe document.
+async function printViaIframe(invoiceHTML, orderCount) {
+  return new Promise((resolve) => {
+    const now = new Date(), pad = n => String(n).padStart(2, "0");
+    const suggestedName =
+      `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}` +
+      ` - ${pad(now.getHours())}.${pad(now.getMinutes())}` +
+      ` - ${orderCount}`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:0;width:800px;height:1px;border:none;";
+    document.body.appendChild(iframe);
+
+    const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iDoc.open();
+    iDoc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${suggestedName}</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #000; background: #fff; }
+    @page { margin: 10mm; size: A4; }
+    .invoice-page { page-break-after: always; padding: 16px 20px; max-width: 800px; margin: 0 auto; }
+    .invoice-page:last-child { page-break-after: auto; }
+    s { text-decoration: line-through; }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body>${invoiceHTML}</body>
+</html>`);
+    iDoc.close();
+
+    iframe.onload = () => {
+      // Render barcodes inside iframe context
+      try {
+        const iWin = iframe.contentWindow;
+        if (iWin.JsBarcode) {
+          iDoc.querySelectorAll("svg[data-barcode-value]").forEach(el => {
+            try {
+              iWin.JsBarcode(el, el.getAttribute("data-barcode-value"), {
+                format: "CODE128", width: 1.5, height: 50, displayValue: false, margin: 0,
+              });
+            } catch (_) {}
+          });
+        }
+      } catch (_) {}
+
+      // Small delay to ensure barcodes + fonts are fully rendered
+      setTimeout(() => {
+        // Temporarily override main page title — Edge/Chrome use it as PDF filename
+        const originalTitle = document.title;
+        document.title = suggestedName;
+        try { iframe.contentWindow.print(); } catch (_) {}
+        // Restore title and clean up iframe after print dialog closes
+        setTimeout(() => {
+          document.title = originalTitle;
+          try { document.body.removeChild(iframe); } catch (_) {}
+          resolve();
+        }, 2000);
+      }, 600);
+    };
+  });
 }
 
 function showPrintLoading(msg) {
