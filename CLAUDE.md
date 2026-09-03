@@ -2,11 +2,11 @@
 
 # طابعة الفواتير (`Order-Printer`)
 
-![version](https://img.shields.io/badge/version-v1.0.0-blue)
+![version](https://img.shields.io/badge/version-v2.0.0-blue)
 
-**بتعمل إيه:** الموظف بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة وبتحدّث حالة الأوردر لـ `Ready`.
+**بتعمل إيه:** الموظف بيسجّل دخول بـ PIN، بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
-**الإصدار:** Worker `v1.1.1` · الواجهة بلا رقم (مفيش `TOOL_VERSION` في الـ HTML)
+**الإصدار:** Worker `v2.0.0` · الواجهة `v2.0.0` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.0.0`
 
 ## الروابط
 
@@ -18,31 +18,54 @@
 
 ## الـ Endpoints
 
-> الأداة دي **مش** بتستخدم نمط `?action=` — الراوتينج بالـ path، وكلها `POST`.
+> الأداة بترّوت بطريقتين مع بعض: **path** لنداءات الأداة نفسها (شكل تاريخي متساب
+> عمدًا)، و**`?action=`** للمشترك القياسي (Auth · Logs · Diag).
 
 | المسار | بيعمل إيه |
 |---|---|
-| `POST /orders` | أوردرات S1 + S2 الجاهزة للطباعة |
-| `POST /invoice` | بيانات فاتورة أوردر واحد (بنود · خصومات · مرتجع · استبدال) |
-| `POST /track` | تسجيل في D1 + تاج `Printed(S1/S2)` + ميتافيلد وقت الطباعة + الحالة `Ready` |
-| `POST /logs` | سجل الطباعة من D1 |
-| `?action=import_logs` | ⚠️ endpoint ترحيل مؤقت — شوف الفخاخ |
+| `POST /orders` | أوردرات S1 + S2 الجاهزة للطباعة (+ `zoneExcluded`) |
+| `POST /invoice` | بيانات فاتورة أوردر واحد (+ `truncatedLineItems`) |
+| `POST /track` | تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة `Ready`. **بيطلب `employee`** |
+| `POST /logs` | سجل الطباعة بعدّاد لكل أوردر (+ `cap` · `total` · `truncated`) |
+| `GET ?action=check_employee` · `POST register_pin` · `POST verify_employee` | Universal D1 Auth |
+| `GET ?action=log_logout` · `GET ?action=get_employees` | Universal D1 Auth |
+| `GET ?action=get_logs` · `get_logs_count` · `get_logs_export` | سجل العمليات القياسي |
+| `GET ?action=diag` | فحص ذاتي بدون كتابة — متغيرات · D1 · موظفين · OAuth · صلاحيات · Origin |
+| `GET ?action=get_config` | `WORKER_VERSION` — الواجهة بتقارنه بـ `MIN_WORKER_VERSION` |
 
 ## D1
 
 ```
-tool  : order_printer
-type  : S1 · S2
+tool  : order_printer      · type : S1 · S2 · login · logout
+tool  : metafields_change  · type : update      ← الأداة بقت كاتب تاني تحت الصف ده
 ```
 
-⚠️ **مفيش `login`/`logout`** — مفيش شاشة دخول؛ الاتصال بـ Worker URL + Secret
-متخزّنين في `localStorage` عند الموظف. وضع قايم موروث، مش قاعدة.
+🔴 **بند تسجيل مفتوح في `ecommoda-constants` §7 — لازم يتقفل:**
+صف Order Printer مسجّل `S1 · S2` بس. النسخة دي بتكتب كمان `login` و`logout`،
+وبقت **كاتب جديد** تحت `metafields_change` / `update` بمفتاح إسناد
+`extra.source = "order_printer"`. التلات بنود دول لازم يتضافوا في §7.
+
+⚠️ **عمود `order_id`:** الصفوف الجديدة بترجّع **الرقم المجرد** (`5678901234567`)
+تنفيذًا لقاعدة الـ numeric order ID. الصفوف التاريخية (قبل v2.0.0) فيها الـ GID
+كامل (`gid://shopify/Order/...`) — أي استعلام بيقارن العمود ده لازم ياخد باله.
+
+## تسجيل الدخول
+
+Universal D1 Auth كامل — شاشة دخول بـ PIN على خطوتين، و`currentEmployee` في
+ذاكرة الـ JS بس (عمره ما يروح `localStorage`). الـ `WORKER SECRET` هو الحقل
+الوحيد في شاشة الإعدادات؛ الـ `WORKER_URL` بقى **ثابت في `§CONFIG`** مش حقل
+إدخال (Standards #28).
+
+> قبل v2.0.0 مكانش فيه شاشة دخول خالص، فعمود `employee` **فاضي في كل الصفوف
+> التاريخية** — مش هيتملي بأثر رجعي.
 
 ## ثوابت مزروعة في الكود (مش في `[vars]`)
 
 ```
 DATE_FROM   = "2026-04-01"                    ← الأقدم من كده مبيظهرش خالص
-ZONE_FILTER = ["Cairo+Giza", "Show_Room"]     ← أي zone تانية بتتفلتر من /orders بصمت
+ZONE_FILTER = ["Cairo+Giza", "Show_Room"]     ← بيفلتر، بس بقى بيرجّع zoneExcluded
+LOGS_FETCH_MAX  = 5000                        ← سقف /logs — بيرجع كـ cap
+LOG_EXPORT_MAX  = 2000                        ← سقف get_logs_export
 ```
 
 ## المضبوط فعليًا في الداشبورد
@@ -59,18 +82,16 @@ Build watch paths : * (الافتراضي — التضييق ما اتعملش)
 | المتغيّر | التصنيف |
 |---|---|
 | `WORKER_SECRET` · `CLIENT_ID` · `CLIENT_SECRET` | سر — يدوي دايمًا |
-| `SHOP_DOMAIN` | var بيفشل لو غاب — صفوف D1 الحديثة تثبت وجوده |
-| — | var ليه fallback: **مفيش ولا واحد** ✅ فمفيش خطر «أرقام غلط بصمت» هنا |
+| `SHOP_DOMAIN` | var بيفشل لو غاب — و`assertEnv` بقى بيسمّيه بالاسم |
+| — | var ليه fallback: **مفيش ولا واحد** ✅ |
 
 ## CORS
 
-`wildcard *` في كل الردود. الأداة **كتابة**، فالـ wildcard مش الشكل المفضّل —
-البوابة الفعلية هي `WORKER_SECRET` في كل نداء. (بند مفتوح تحت.)
+**Option B — allowlist**: `['https://ecommoda-dev.github.io']` + `Vary: Origin`.
+اتغيّرت في v2.0.0 من `wildcard *` — الأداة كتابة على شوبيفاي. البوابة الفعلية
+لسه `WORKER_SECRET` في كل نداء.
 
 ## خط الأساس قبل النقل
-
-> أحمد ماداش خط أساس، فاتاخد بديل من D1 (سكيل النقل §0-ب). نفس الاستعلام بعد
-> النقل لازم يرجّع أرقام **أكبر أو تساوي** دي.
 
 ```
 tool = 'order_printer'  —  قراءة 03-09-2026
@@ -84,20 +105,25 @@ SELECT type, COUNT(*) AS n, MAX(timestamp) AS last_ts FROM logs WHERE tool = 'or
 
 ## فخاخ الأداة دي
 
-- 🔴 **`?action=import_logs` لسه منشور وملوش idempotency** — الكود نفسه معلّم
-  عليه «امسحه فور تأكيد الـ Migration». نفس الشكل اللي كتب **925 صف مكرر** في
-  `cod-payment-center-worker` (`ecommoda-constants` §11 بند 13). النقل ما مسحوش
-  عشان `index.js` يفضل مطابق حرفيًا لكلاودفلير.
-- **`ZONE_FILTER` بيفلتر بصمت** — «الأوردر مش ظاهر» = افحص `custom.zone` الأول.
-- **`/track` بيعمل ٣ كتابات على Shopify بالتوازي**، وفشل واحدة **مش** بيفشل
-  النداء. لو الحالة ما اتغيّرتش، بصّ على `statusResult` في الرد.
-- **الواجهة بتنادي `/track` بـ `.catch(() => {})`** — فشل التسجيل مش بيوصل للموظف.
+- **`ZONE_FILTER` بيفلتر** — «الأوردر مش ظاهر» = افحص `custom.zone` الأول.
+  `/orders` بقى بيرجّع `zoneExcluded` فالعدد المستبعَد بقى ظاهر بدل ما يبقى
+  تشخيص يدوي في كل مرة.
+- **`Delivered` حالة نهائية** — أي محاولة طباعة S1 لأوردر متسلّم بترجّع
+  `warning` والحالة **مش** بتتكتب. ده مقصود (`ecommoda-order-lifecycle` §1.4).
+- **`/track` بيرجّع تلات حالات** — `success` · `warning` · `error`. الأصفر معناه
+  الطباعة اتسجّلت بس فيه فعل ما تمّش (الحالة مثلاً). **ممنوع يتحسب نجاح.**
+- **الحالة الحالية بتتقرا قبل أي كتابة** — لو القراءة فشلت، الحالة **مش**
+  بتتكتب والرد بيرجع `warning`. الاتجاه الآمن مقصود.
+- **`order_id` مختلط في D1** — رقمي للجديد، GID للقديم (فوق).
+- **مستند الـ iframe مالوش وصول لـ `:root`** — كل ألوان HTML الفاتورة حرفية
+  (`#000` / `#fff` / `#555`)، وده استثناء تقني موثّق من Standards #35 مش إهمال.
 
 ## استرجاع النسخ القديمة
 
 ```
 Indexv-iframe.html · Indexv-jspdf.html  →  commit 0f99338
 Index-pdf.html (الأقدم)                 →  commit 85de4d6
+النسخة قبل PR الأمان + المعمارية        →  commit e2cd6da
 
 git show 0f99338:Indexv-iframe.html
 ```
@@ -106,30 +132,29 @@ git show 0f99338:Indexv-iframe.html
 
 | المهارة | الإصدار وقت آخر تعديل |
 |---|---|
-| ecommoda-worker-builder | v1.0.0 |
-| ecommoda-html-builder | v1.0.0 |
-| ecommoda-constants | v1.0.0 |
+| ecommoda-worker-builder | v2.0.0 |
+| ecommoda-html-builder | v6.2.0 |
+| ecommoda-order-lifecycle | v1.3.0 |
+| ecommoda-constants | v1.4.3 |
 
-آخر مطابقة: 03-09-2026 · `index.js` v1.1.1 · `index.html` (بلا رقم)
-🔴 معلّقة: `?action=import_logs` — endpoint ترحيل مؤقت بلا idempotency، حذفه متأجّل عشان النقل يفضل byte-for-byte
-
-> ⚠️ `v1.0.0` هنا معناها **«قبل النظام»، مش «مطابقة»** (`ecommoda-skill-versioning`
-> Step 5). الكود اتنقل كما هو بلا retrofit. الإصدارات الحالية وقت النقل:
-> worker-builder **v2.0.0** · html-builder **v6.2.0** · constants **v1.4.3**.
+آخر مطابقة: 03-09-2026 · `index.js` v2.0.0 · `index.html` v2.0.0
 
 ## مسائل مفتوحة
 
-- **حذف `?action=import_logs`** — قرار أحمد، في PR مستقل مش في PR النقل.
-- **retrofit على القواعد الحالية** — بنود 🔴 من CHANGELOG الثلاث مهارات فوق.
-  **مش حملة** — يتعمل أول ما الأداة تتفتح لسبب حقيقي.
-- **شاشة الدخول الموحّدة** (`employees-admin-panel-worker`) بدل Worker URL +
-  Secret في `localStorage` — قرار مستقل.
-- **تضييق `Build watch paths`** على `index.js` + `wrangler.toml` (§13-ب) —
-  لو اتعمل، يتوثّق هنا، وأي ملف جديد بيعتمد عليه الـ Worker يتضاف للقايمة.
-- **placeholder في شاشة الإعدادات بيشاور على حساب مهجور**
-  (`...ecommoda24.workers.dev`) — نص placeholder بس، اتساب عشان الواجهة تفضل
-  byte-for-byte.
+- 🔴 **تسجيل `login` · `logout` · الكتابة تحت `metafields_change` في
+  `ecommoda-constants` §7** — البند ده **قبل** أي نشر (Rule 7). فوق التفاصيل.
+- **سبب تغيير الحالة (`ecommoda-order-lifecycle` §1.5)** — القاعدة بتقول أي
+  Worker بيكتب `manual_status` لازم يطلب سبب. الأداة دي بتكتب `Ready` كأثر
+  جانبي للطباعة مش كتغيير حالة يدوي، فطلب سبب على زرار طباعة يناقض وظيفتها.
+  **قرار أحمد مطلوب:** استثناء صريح للأدوات الأوتوماتيكية، ولا الأداة تطلب سبب؟
+  حاليًا بتتسجّل بـ `notes: "طباعة الفاتورة"` كإسناد.
+- **باقي معيار الواجهة (PR ٣)** — About modal · Changelog modal · شكل التابات
+  `.main-tabs-bar` · Log Tab v2 (فلاتر سيرفر + pagination + multi-select +
+  ترتيب) · `orderLink()` · صيغة التاريخ الموحّدة · KPI «اليوم» بيوم القاهرة
+  مش UTC.
+- **تضييق `Build watch paths`** على `index.js` + `wrangler.toml` (§13-ب).
+- **`compatibility_date = "2025-01-01"`** — مطابق لقالب المهارة الحالي، فاتساب.
 
-آخر تحديث: 03-09-2026 — 10:39
+آخر تحديث: 03-09-2026 — 14:20
 
 </div>

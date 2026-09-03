@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<!-- skills: html-builder v1.0.0 — 03-09-2026 -->
+<!-- skills: html-builder v6.2.0 · worker-builder v2.0.0 · order-lifecycle v1.3.0 — 03-09-2026 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order Printer — EcomModa</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <!-- iframe + print — no extra library needed -->
@@ -30,13 +30,32 @@
   --red-border:    #fca5a5;
   --amber:         #d97706;
   --amber-light:   #fffbeb;
+  --amber-border:  #fcd34d;
+  --amber-dark:    #92400e;
+  --purple:        #7c3aed;
+  --on-accent:     #ffffff;
+  --print-ink:     #000000;
+  --print-paper:   #ffffff;
+  --accent-border: #bfdbfe;
+  --accent-muted:  #93c5fd;
+  --surface-hover: #f3f4f6;
+  --green-dark:    #15803d;
+  --red-dark:      #b91c1c;
+
+  /* خط واحد فقط — IBM Plex Mono أُلغي 19-08-2026. --font-mono متغيّر
+     توافقي بنفس قيمة --font-body عشان الكلاسات القديمة تفضل شغّالة. */
+  --font-body: 'Noto Sans Arabic', -apple-system, sans-serif;
+  --font-mono: 'Noto Sans Arabic', -apple-system, sans-serif;
+
+  --container-max: 1400px;   /* Tier L — جداول كثيفة (٨ أعمدة في تاب الطباعة) */
+
   --radius:    12px;
   --radius-sm: 8px;
   --shadow:    0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Noto Sans Arabic', -apple-system, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg); color: var(--text-primary);
   font-size: 14px; min-height: 100vh;
 }
@@ -48,7 +67,7 @@ body {
 }
 .header-brand { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
 .header-brand h1 { font-size: 17px; font-weight: 700; }
-.header-subtitle { font-size: 11px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; }
+.header-subtitle { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 .tabs { display: flex; align-items: stretch; margin-right: 24px; }
 .tab-btn {
@@ -65,15 +84,16 @@ body {
   font-family: inherit; font-size: 13px; font-weight: 600;
   cursor: pointer; border: none; transition: all .15s;
 }
-.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent-dark); }
-.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-primary:disabled { background: var(--accent-muted); cursor: not-allowed; }
 .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-strong); }
 .btn-ghost:hover { background: var(--surface-2); }
-.btn-danger { background: var(--red); color: #fff; }
-.btn-danger:hover { background: #b91c1c; }
+.btn-danger { background: var(--red); color: var(--on-accent); }
+.btn-danger:hover { background: var(--red-dark); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
-.main { padding: 20px; max-width: 1300px; margin: 0 auto; }
+.main { padding: 20px; }
+.container { max-width: var(--container-max); margin: 0 auto; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 .state-box {
@@ -98,7 +118,7 @@ body {
   background: var(--surface); border-radius: var(--radius);
   padding: 16px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
 }
-.kpi-value { font-size: 32px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; }
+.kpi-value { font-size: 32px; font-weight: 800; font-family: var(--font-mono); }
 .kpi-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 .kpi-card.accent .kpi-value { color: var(--accent); }
 .kpi-card.green  .kpi-value { color: var(--green); }
@@ -120,7 +140,7 @@ input[type="text"], input[type="date"], select {
   outline: none; transition: border-color .15s;
 }
 input:focus, select:focus { border-color: var(--accent); }
-.order-search { font-family: 'IBM Plex Mono', monospace; direction: ltr; width: 120px; }
+.order-search { font-family: var(--font-mono); direction: ltr; width: 120px; }
 .result-count { font-size: 12px; color: var(--text-muted); }
 .print-bar {
   background: var(--accent-light); border: 1px solid var(--accent);
@@ -146,7 +166,7 @@ td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align:
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface-2); }
 tr.selected td { background: var(--accent-light); }
-.mono { font-family: 'IBM Plex Mono', monospace; direction: ltr; display: inline-block; }
+.mono { font-family: var(--font-mono); direction: ltr; display: inline-block; }
 .type-badge {
   display: inline-flex; align-items: center;
   padding: 3px 10px; border-radius: 20px;
@@ -157,7 +177,7 @@ tr.selected td { background: var(--accent-light); }
 .count-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 26px; height: 26px; border-radius: 13px; padding: 0 6px;
-  font-size: 12px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; font-weight: 700; font-family: var(--font-mono);
 }
 .count-0 { background: var(--green-light); color: var(--green); }
 .count-1 { background: var(--green-light); color: var(--green); }
@@ -167,7 +187,7 @@ tr.selected td { background: var(--accent-light); }
 .table-footer { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
 .overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  z-index: 200; display: none; align-items: center; justify-content: center;
+  z-index: 600; display: none; align-items: center; justify-content: center;
 }
 .overlay.open { display: flex; }
 .modal {
@@ -181,7 +201,7 @@ tr.selected td { background: var(--accent-light); }
 .form-group { margin-bottom: 14px; }
 .form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; }
 .form-input {
-  width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  width: 100%; font-family: var(--font-mono); font-size: 13px;
   padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--text-primary); outline: none; direction: ltr;
 }
@@ -202,12 +222,12 @@ tr.selected td { background: var(--accent-light); }
   border-radius: var(--radius-sm); padding: 10px 12px;
   font-size: 13px; display: flex; align-items: center; justify-content: space-between;
 }
-.confirm-order-num { font-family: 'IBM Plex Mono', monospace; font-weight: 700; }
+.confirm-order-num { font-family: var(--font-mono); font-weight: 700; }
 .confirm-order-meta { color: var(--text-secondary); font-size: 12px; }
 .confirm-question { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 12px; }
 .print-loading-overlay {
   position: fixed; inset: 0; background: rgba(255,255,255,.95);
-  z-index: 300; display: none; align-items: center; justify-content: center;
+  z-index: 600; display: none; align-items: center; justify-content: center;
   flex-direction: column; gap: 16px;
 }
 .print-loading-overlay.show { display: flex; }
@@ -215,15 +235,16 @@ tr.selected td { background: var(--accent-light); }
 input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
 @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
 @media print {
-  .app-header, .main, .overlay, .print-loading-overlay { display: none !important; }
+  .app-header, .main, .overlay, .print-loading-overlay,
+  .login-overlay, .toast-container { display: none !important; }
   .print-container { display: block !important; }
-  body { background: #fff; }
+  body { background: var(--print-paper); }
 }
 .print-container { display: none; }
 .invoice-page {
   page-break-after: always;
   padding: 16px 20px; font-family: Arial, Helvetica, sans-serif;
-  font-size: 14px; color: #000; background: #fff;
+  font-size: 14px; color: var(--print-ink); background: var(--print-paper);
   max-width: 800px; margin: 0 auto;
 }
 .invoice-page:last-child { page-break-after: auto; }
@@ -232,16 +253,281 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   overflow: hidden;
 }
 .count-toggle {
-  padding: 7px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  padding: 7px 14px; font-family: var(--font-mono); font-size: 13px; font-weight: 700;
   cursor: pointer; border: none; border-left: 1px solid var(--border-strong);
   background: var(--surface); color: var(--text-secondary); transition: all .15s;
 }
 .count-toggle:first-child { border-left: none; }
 .count-toggle:hover:not(.active) { background: var(--surface-2); }
-.count-toggle.active { background: var(--accent); color: #fff; }
+.count-toggle.active { background: var(--accent); color: var(--on-accent); }
+/* ══════════════════════════════════════════════════════════════
+   §LOGIN — CSS (ecommoda-html-builder templates/22_login-screen.html)
+   ══════════════════════════════════════════════════════════════ */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 500;   /* login = 500 · كل الـ modals = 600 · toast = 9999 */
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.login-overlay.hidden { display: none; }
+.login-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: 0 22px 70px rgba(0,0,0,.22);
+  width: 100%; max-width: 420px; padding: 28px 26px 24px;
+  position: relative; animation: loginIn .18s ease;
+}
+@keyframes loginIn {
+  from { transform: translateY(6px) scale(.985); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);    opacity: 1; }
+}
+.login-settings-btn {
+  position: absolute; top: 16px; left: 16px;
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 38px; padding: 8px 12px;
+  border-radius: 9px; border: 1.5px solid; background: var(--surface);
+  font-family: var(--font-body); font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.login-settings-btn.ready   { border-color: var(--green); color: var(--green); background: var(--green-light); }
+.login-settings-btn.missing { border-color: var(--red);   color: var(--red);   background: var(--red-light);   }
+.login-settings-btn:hover   { transform: translateY(-1px); }
+.login-version {
+  position: absolute; top: 58px; left: 17px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: .2px; user-select: none;
+}
+.login-top { padding-top: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.login-icon  { font-size: 34px; line-height: 1; margin-bottom: 14px; }
+.login-title { font-size: 19px; font-weight: 900; letter-spacing: -.1px; }
+.login-desc  { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 5px; }
+.login-sub   {
+  min-height: 22px; margin-top: 4px; color: var(--text-muted);
+  font-size: 12px; font-weight: 600; text-align: center; line-height: 1.7;
+}
+.login-body  { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+.login-field { display: flex; flex-direction: column; gap: 7px; }
+.login-field select {
+  width: 100%; height: 58px;
+  border: 1.5px solid var(--border-strong); border-radius: 10px;
+  background: var(--surface); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  outline: none; padding: 0 14px; transition: border-color .15s, box-shadow .15s;
+}
+.login-field select:focus    { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+.login-field select:disabled { opacity: .68; cursor: not-allowed; background: var(--surface-2); }
+.login-status { min-height: 18px; font-size: 12px; font-weight: 700; color: var(--text-muted); line-height: 1.5; }
+.login-status.info  { color: var(--accent); }
+.login-status.warn  { color: var(--amber);  }
+.login-status.error { color: var(--red);    }
+.pin-zone { display: none; flex-direction: column; gap: 12px; animation: pinZoneIn .16s ease; }
+.pin-zone.visible { display: flex; }
+@keyframes pinZoneIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.pin-label { font-size: 12px; font-weight: 800; color: var(--text-secondary); text-align: right; margin-top: 2px; }
+.pin-slots { display: flex; justify-content: center; gap: 9px; direction: ltr; }
+.pin-slot {
+  width: 48px; height: 48px; border-radius: 10px;
+  border: 1.5px solid var(--border-strong); background: var(--surface-2);
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 22px; font-weight: 800;
+  color: var(--accent); transition: all .15s; user-select: none;
+}
+.pin-slot.empty::before  { content: '_'; transform: translateY(-2px); color: var(--accent); opacity: .75; font-size: 18px; }
+.pin-slot.filled         { background: var(--accent-light); border-color: var(--accent); }
+.pin-slot.filled::before { content: '●'; font-size: 17px; transform: translateY(-1px); color: var(--accent); opacity: 1; }
+.pin-slot.error          { border-color: var(--red); background: var(--red-light); }
+.pin-slot.error::before  { color: var(--red); }
+.pin-slots.shake { animation: pinShake .34s ease; }
+@keyframes pinShake {
+  0%,100% { transform: translateX(0);  }
+  22%     { transform: translateX(-5px); }
+  44%     { transform: translateX( 5px); }
+  66%     { transform: translateX(-3px); }
+  88%     { transform: translateX( 3px); }
+}
+.pin-keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 1px 0 0; }
+.pin-key {
+  min-height: 49px; border-radius: 10px;
+  border: 1.5px solid var(--border-strong); background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-mono); font-size: 18px; font-weight: 800;
+  cursor: pointer; transition: background .12s, color .12s, border-color .12s, transform .06s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-key:hover:not(:disabled)  { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.pin-key:active:not(:disabled) { transform: translateY(1px); }
+.pin-key.utility {
+  color: var(--red); background: var(--red-light); border-color: var(--red-border);
+  font-family: var(--font-body); font-size: 13px; font-weight: 900;
+}
+.pin-key.utility:hover:not(:disabled) { background: var(--red); color: var(--on-accent); border-color: var(--red); }
+.pin-key:disabled { opacity: .55; cursor: not-allowed; }
+.login-alert {
+  display: none; min-height: 38px; border-radius: 10px;
+  border: 1px solid var(--red-border); background: var(--red-light); color: var(--red);
+  padding: 9px 12px; font-size: 12px; font-weight: 800; text-align: center; line-height: 1.6;
+}
+.login-alert.visible { display: block; }
+.login-primary {
+  display: none; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-height: 58px; margin-top: 1px;
+  border: none; border-radius: 10px;
+  background: var(--accent); color: var(--on-accent);
+  font-family: var(--font-body); font-size: 15px; font-weight: 900;
+  cursor: pointer; transition: background .15s, opacity .15s, transform .06s;
+}
+.login-primary.visible               { display: inline-flex; }
+.login-primary:hover:not(:disabled)  { background: var(--accent-dark); }
+.login-primary:active:not(:disabled) { transform: translateY(1px); }
+.login-primary:disabled { opacity: .56; cursor: not-allowed; }
+.login-secondary {
+  display: none; align-items: center; justify-content: center;
+  width: 100%; min-height: 42px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-body); font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: all .15s;
+}
+.login-secondary.visible { display: inline-flex; }
+.login-secondary:hover   { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+/* ── Toast ─────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  pointer-events: none;
+}
+.toast {
+  padding: 11px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; line-height: 1.6;
+  box-shadow: 0 8px 26px rgba(0,0,0,.18);
+  border: 1px solid; max-width: 90vw; animation: toastIn .16s ease;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.toast.success { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+.toast.error   { background: var(--red-light);   border-color: var(--red);   color: var(--red-dark);   }
+.toast.warn    { background: var(--amber-light); border-color: var(--amber); color: var(--amber-dark); }
+.toast.info    { background: var(--accent-light);border-color: var(--accent);color: var(--accent-dark);}
+
+/* ── Header extras: worker-stale + logout ─────────────────── */
+.hbtn.warn {
+  border: 1px solid var(--amber); color: var(--amber); background: var(--amber-light);
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 12px; font-weight: 800; cursor: pointer;
+}
+.header-employee {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  padding: 0 4px; white-space: nowrap;
+}
+
+/* ── §RESULTS — نتيجة الطباعة: ٣ حالات مش اتنين ─────────────── */
+.results-panel {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 14px 16px; margin-bottom: 18px;
+}
+.results-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 14px; font-weight: 800; margin-bottom: 10px;
+}
+.results-summary { font-family: var(--font-mono); font-weight: 700; color: var(--text-secondary); font-size: 13px; }
+.results-list { display: flex; flex-direction: column; gap: 8px; }
+.result-row {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 9px 12px; font-size: 13px; line-height: 1.75;
+}
+.result-row.success { border-color: var(--green-border); background: var(--green-light); }
+.result-row.warning { border-color: var(--amber-border); background: var(--amber-light); }
+.result-row.error   { border-color: var(--red-border);   background: var(--red-light);   }
+.result-badge {
+  display: inline-block; padding: 2px 9px; border-radius: 6px;
+  font-size: 11px; font-weight: 800; margin-left: 8px;
+}
+.badge-success { background: var(--green); color: var(--on-accent); }
+.badge-warn    { background: var(--amber); color: var(--on-accent); }
+.badge-danger  { background: var(--red);   color: var(--on-accent); }
+.result-actions { color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.result-detail  { color: var(--red-dark); font-size: 12px; font-weight: 700; }
+.result-warn    { color: var(--amber-dark); font-size: 12px; font-weight: 700; }
+.export-warn {
+  margin: 0 0 12px; padding: 10px 14px; border-radius: 9px;
+  background: var(--amber-light); border: 1px solid var(--amber);
+  color: var(--amber-dark); font-size: 13px; font-weight: 600; line-height: 1.7;
+}
+.settings-diag {
+  border-top: 1.5px solid var(--border); padding-top: 12px; margin-top: 4px;
+}
+.settings-diag-result { margin-top: 10px; font-size: 12px; line-height: 1.8; }
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     §LOGIN — شاشة الدخول (خطوتان — pin-zone مخفية لحد اختيار الموظف)
+     ══════════════════════════════════════════════════════════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+
+    <button class="login-settings-btn missing" id="loginSettingsBtn" onclick="openSettings()">
+      ⚙️ الإعدادات
+    </button>
+    <div class="login-version" id="loginVersionText"></div>
+
+    <div class="login-top">
+      <div class="login-icon">🖨️</div>
+      <div class="login-title">طباعة أوردرات القاهرة</div>
+      <div class="login-desc">طباعة فواتير الأوردرات الجاهزة</div>
+      <div class="login-sub" id="loginSub"></div>
+    </div>
+
+    <div class="login-body">
+
+      <div class="login-field">
+        <select id="loginSelect" onchange="handleEmployeeChange()" disabled>
+          <option value="">اختر اسمك للمتابعة</option>
+        </select>
+        <div class="login-status warn" id="loginStatus">الإعدادات غير مكتملة — افتح الإعدادات أولاً.</div>
+      </div>
+
+      <!-- loginAlert لازم يفضل بره .pin-zone — عشان يظهر في الخطوة الأولى -->
+      <div class="login-alert" id="loginAlert"></div>
+
+      <div class="pin-zone" id="pinZone">
+        <div class="pin-label" id="pinLabel">أدخل الـ PIN</div>
+
+        <div class="pin-slots" id="pinSlots">
+          <div class="pin-slot empty" id="pinSlot0"></div>
+          <div class="pin-slot empty" id="pinSlot1"></div>
+          <div class="pin-slot empty" id="pinSlot2"></div>
+          <div class="pin-slot empty" id="pinSlot3"></div>
+        </div>
+
+        <div class="pin-keypad" id="pinKeypad">
+          <button class="pin-key" onclick="pressPinKey('1')">1</button>
+          <button class="pin-key" onclick="pressPinKey('2')">2</button>
+          <button class="pin-key" onclick="pressPinKey('3')">3</button>
+          <button class="pin-key" onclick="pressPinKey('4')">4</button>
+          <button class="pin-key" onclick="pressPinKey('5')">5</button>
+          <button class="pin-key" onclick="pressPinKey('6')">6</button>
+          <button class="pin-key" onclick="pressPinKey('7')">7</button>
+          <button class="pin-key" onclick="pressPinKey('8')">8</button>
+          <button class="pin-key" onclick="pressPinKey('9')">9</button>
+          <button class="pin-key utility" onclick="pressPinKey('clear')">مسح</button>
+          <button class="pin-key" onclick="pressPinKey('0')">0</button>
+          <button class="pin-key utility" onclick="pressPinKey('back')">←</button>
+        </div>
+
+        <button class="login-primary visible" id="loginPrimaryBtn"
+                onclick="handlePrimaryLoginAction()" disabled>دخول</button>
+        <button class="login-secondary" id="loginSecondaryBtn"
+                onclick="restartNewPinFlow()">الرجوع لإدخال PIN جديد</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
 
 <header class="app-header">
   <div style="display:flex; align-items:center; gap:0;">
@@ -259,12 +545,17 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
   <div class="header-actions">
     <span id="lastUpdated" style="font-size:12px; color:var(--text-muted);"></span>
+    <button class="hbtn warn" id="verStaleBtn" style="display:none;"
+            onclick="showWorkerStale()">⚠️ الـ Worker نسخة قديمة</button>
+    <span class="header-employee" id="headerEmployee"></span>
     <button class="btn btn-ghost btn-sm" onclick="handleRefresh()">🔄 تحديث</button>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">🚪 خروج</button>
     <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ إعدادات</button>
   </div>
 </header>
 
 <main class="main">
+<div class="container">
   <div class="tab-panel active" id="tab-print">
     <div id="printLoadingState" class="state-box" style="display:none;">
       <div class="spinner"></div>
@@ -276,6 +567,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <button class="btn btn-ghost" onclick="loadOrders(true)">إعادة المحاولة</button>
     </div>
     <div id="printDashboard" style="display:none;">
+      <div id="trackResults"></div>
       <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:20px;">
         <div class="kpi-card">
           <div class="kpi-value" id="kpiS1">0</div>
@@ -354,6 +646,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <button class="btn btn-ghost" onclick="loadLogs()">إعادة المحاولة</button>
     </div>
     <div id="logsDashboard" style="display:none;">
+      <div id="logExportWarn" class="export-warn" style="display:none;"></div>
       <div class="kpi-grid" style="margin-bottom:20px;">
         <div class="kpi-card accent">
           <div class="kpi-value" id="logKpiTotal">0</div>
@@ -433,6 +726,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       </div>
     </div>
   </div>
+</div>
 </main>
 
 <div class="print-container" id="printContainer"></div>
@@ -449,12 +743,13 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Worker URL</label>
-      <input class="form-input" id="cfgUrl" type="text" placeholder="https://order-print-tracker-worker.ecommoda24.workers.dev">
+      <label class="form-label">WORKER SECRET</label>
+      <input class="form-input" id="cfgSecret" type="password">
     </div>
-    <div class="form-group">
-      <label class="form-label">Worker Secret</label>
-      <input class="form-input" id="cfgSecret" type="password" placeholder="••••••••••••">
+    <div class="form-group settings-diag">
+      <label class="form-label">فحص النظام</label>
+      <button class="btn btn-ghost btn-sm" id="diagBtn" onclick="runDiag()">🩺 افحص الأداة والاتصالات</button>
+      <div class="settings-diag-result" id="diagResult"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeSettings()">إلغاء</button>
@@ -485,27 +780,429 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 </div>
 
 <script>
-const CFG_KEY = "order_printer_v1_config";
-function getConfig() { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; } }
-function saveConfig(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
-function isConfigured() { const c = getConfig(); return c.workerUrl?.startsWith("http") && c.secret?.length > 0; }
+// ══════════════════════════════════════════════════════════════
+// §CONFIG
+// ══════════════════════════════════════════════════════════════
+// الرابط مش سر — الحماية في WORKER_SECRET + CORS allowlist (Standards #28).
+// اسم الـ Worker بيتحدد وقت الإنشاء ومايتغيّرش، فمالوش داعي يبقى حقل إدخال.
+const WORKER_URL = "https://order-printer-worker.ecommoda-dev.workers.dev";
+const LS_SECRET  = "order_printer_worker_secret";
+
+// ترحيل من المفتاح القديم ({workerUrl, secret}) — الموظف ما يدخّلش السر تاني
+(function migrateLegacyConfig() {
+  try {
+    if (localStorage.getItem(LS_SECRET)) return;
+    const old = JSON.parse(localStorage.getItem("order_printer_v1_config") || "null");
+    if (old && old.secret) localStorage.setItem(LS_SECRET, old.secret);
+  } catch {}
+})();
+
+function getConfig() {
+  let secret = "";
+  try { secret = localStorage.getItem(LS_SECRET) || ""; } catch {}
+  return { workerUrl: WORKER_URL.replace(/\/$/, ""), secret };
+}
+function isConfigured() { return getConfig().secret.length > 0; }
+
+// ⚠️ apiRequest مش تجميل — `await resp.json()` المباشرة بتخلط تلات حالات
+// مختلفة في رسالة واحدة غامضة: الـ Worker رد بخطأ · الـ URL/CORS رافض ·
+// الـ Worker رد بحاجة مش JSON. الطبقة دي بتسمّي كل واحدة باسمها.
+async function apiRequest(url, opts = {}) {
+  const { secret } = getConfig();
+  if (!secret) throw new Error("الإعدادات غير مكتملة — افتح الإعدادات وأدخل الـ WORKER SECRET.");
+
+  let resp;
+  try {
+    resp = await fetch(url, {
+      ...opts,
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${secret}`, ...(opts.headers || {}) },
+    });
+  } catch (e) {
+    throw new Error("تعذّر الوصول للـ Worker — تأكد من الاتصال بالإنترنت أو من إعدادات الـ CORS.");
+  }
+
+  const text = await resp.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch {
+    throw new Error(`الـ Worker رد بحاجة مش JSON (HTTP ${resp.status}) — ${text.slice(0, 120)}`);
+  }
+  if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+  return data;
+}
+
+const apiPath = (path, body = {}) =>
+  apiRequest(`${getConfig().workerUrl}${path}`, { method: "POST", body: JSON.stringify(body) });
+
+const apiPost = (action, body = {}) =>
+  apiRequest(`${getConfig().workerUrl}/?action=${encodeURIComponent(action)}`, { method: "POST", body: JSON.stringify(body) });
+
+function apiGet(action, params = {}) {
+  const qs = new URLSearchParams({ action, ...params }).toString();
+  return apiRequest(`${getConfig().workerUrl}/?${qs}`, { method: "GET" });
+}
+
+// ══════════════════════════════════════════════════════════════
+// §SHELL-JS
+// ══════════════════════════════════════════════════════════════
+const TOOL_VERSION = "2.0.0";
+// أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
+// verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
+// ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
+const MIN_WORKER_VERSION = "2.0.0";
+let workerVersion = null;
+
+// مقارنة رقمية — مش نصية. "10" أصغر من "9" لو اتقارنوا كنص.
+function cmpVersion(a, b) {
+  const pa = String(a).replace(/^v/, "").split(".").map(Number);
+  const pb = String(b).replace(/^v/, "").split(".").map(Number);
+  for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d; }
+  return 0;
+}
+
+async function checkWorkerVersion() {
+  try {
+    const d = await apiGet("get_config");
+    workerVersion = d.version || null;
+    const stale = workerVersion && cmpVersion(workerVersion, MIN_WORKER_VERSION) < 0;
+    const btn = document.getElementById("verStaleBtn");
+    if (btn) btn.style.display = stale ? "" : "none";
+  } catch { /* الإعدادات ممكن تكون لسه مش مضبوطة */ }
+}
+
+function showWorkerStale() {
+  showToast(
+    `الـ Worker نسخته ${workerVersion} والواجهة محتاجة ${MIN_WORKER_VERSION} على الأقل — ` +
+    `التحديث على ما يبدو ما نزلش. راجع Deployments و Promote في كلاودفلير.`,
+    "error", 7000);
+}
+
+function renderVersionUI() {
+  const v = document.getElementById("loginVersionText");
+  if (v) v.textContent = `v${TOOL_VERSION}`;
+}
+
+function showToast(msg, type = "info", ms = 3200) {
+  const c = document.getElementById("toastContainer");
+  if (!c) return;
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+let _audioCtx = null;
+function playBeep(type) {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = _audioCtx.createOscillator(), gain = _audioCtx.createGain();
+    osc.connect(gain); gain.connect(_audioCtx.destination);
+    const t = _audioCtx.currentTime;
+    if (type === "success")      { osc.frequency.setValueAtTime(880, t); osc.frequency.setValueAtTime(1100, t + .1); gain.gain.setValueAtTime(.3, t); }
+    else if (type === "warn")    { osc.frequency.setValueAtTime(620, t); osc.frequency.setValueAtTime(520,  t + .12); gain.gain.setValueAtTime(.3, t); }
+    else                         { osc.frequency.setValueAtTime(300, t); osc.frequency.setValueAtTime(200,  t + .15); gain.gain.setValueAtTime(.4, t); }
+    gain.gain.exponentialRampToValueAtTime(0.001, t + .3);
+    osc.start(t); osc.stop(t + .3);
+  } catch {}
+}
 
 function openSettings() {
-  const c = getConfig();
-  document.getElementById("cfgUrl").value    = c.workerUrl || "";
-  document.getElementById("cfgSecret").value = c.secret    || "";
+  document.getElementById("cfgSecret").value = getConfig().secret;
+  document.getElementById("diagResult").innerHTML = "";
   document.getElementById("settingsOverlay").classList.add("open");
 }
 function closeSettings() { document.getElementById("settingsOverlay").classList.remove("open"); }
 function saveSettings() {
-  const url = document.getElementById("cfgUrl").value.trim().replace(/\/$/, "");
   const sec = document.getElementById("cfgSecret").value.trim();
-  if (!url || !sec) { alert("برجاء إدخال الـ URL والـ Secret"); return; }
-  saveConfig({ workerUrl: url, secret: sec });
+  if (!sec) { showToast("برجاء إدخال الـ WORKER SECRET", "error"); return; }
+  try { localStorage.setItem(LS_SECRET, sec); } catch {}
   closeSettings();
-  loadOrders(true);
+  updateLoginSettingsBtn();
+  checkWorkerVersion();
+  loadEmployeesList();
 }
 
+// ⚠️ diag ممنوع يعرض قيمة أي سر — الأسماء والأطوال بس (بيكشف المسافة المخفية).
+async function runDiag() {
+  const box = document.getElementById("diagResult");
+  box.textContent = "جارٍ الفحص...";
+  try {
+    const d = await apiGet("diag");
+    const lines = (d.checks || []).map(c =>
+      `${c.ok ? "✅" : "❌"} <b>${escHtml(c.name)}</b> — ${escHtml(c.detail || "")}`);
+    lines.push(`ℹ️ <b>نسخة الـ Worker</b> — ${escHtml(d.version || "?")} (الحد الأدنى ${MIN_WORKER_VERSION})`);
+    lines.push(`ℹ️ <b>متغيرات الـ Worker</b> — ` + (d.envKeys || [])
+      .map(k => `${escHtml(k.name)}${k.length != null ? `(${k.length})` : `[${escHtml(k.kind)}]`}`).join("، "));
+    box.innerHTML = lines.join("<br>");
+  } catch (e) {
+    box.innerHTML = `❌ ${escHtml(e.message)}`;
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// §AUTH-JS — Universal D1 Auth (ecommoda-html-builder Step 4)
+// ══════════════════════════════════════════════════════════════
+let currentEmployee = null;   // { username, displayName } — في الذاكرة فقط، عمره ما يروح localStorage
+let loginMode       = "employee";  // employee | existing | new | confirm
+let pinDigits       = [];
+let pendingNewPin   = "";
+let isLoginBusy     = false;
+let autoLoginTimer  = null;
+
+async function loadEmployeesList() {
+  const sel    = document.getElementById("loginSelect");
+  const status = document.getElementById("loginStatus");
+  clearLoginAlert();
+  sel.innerHTML = '<option value="">اختر اسمك للمتابعة</option>';
+  sel.disabled  = true;
+
+  if (!isConfigured()) {
+    status.className   = "login-status warn";
+    status.textContent = "الإعدادات غير مكتملة — افتح الإعدادات أولاً.";
+    renderLoginMode("employee");
+    return;
+  }
+
+  status.className   = "login-status info";
+  status.textContent = "جارٍ تحميل قائمة الموظفين...";
+
+  try {
+    const data      = await apiGet("get_employees");
+    const employees = data.employees || [];
+    employees.forEach(e => {
+      const o = document.createElement("option");
+      o.value = e.username; o.textContent = e.display_name;
+      sel.appendChild(o);
+    });
+    sel.disabled       = false;
+    status.className   = employees.length ? "login-status info" : "login-status warn";
+    status.textContent = employees.length ? "" : "لا يوجد موظفون نشطون.";
+  } catch (err) {
+    status.className   = "login-status error";
+    status.textContent = "تعذّر تحميل قائمة الموظفين.";
+    showLoginAlert(err.message || "تعذّر تحميل قائمة الموظفين.");
+  }
+}
+
+async function handleEmployeeChange() {
+  if (isLoginBusy) return;
+  clearTimeout(autoLoginTimer);
+  clearLoginAlert();
+  resetPinState();
+
+  const sel      = document.getElementById("loginSelect");
+  const username = sel.value || "";
+  if (!username) { renderLoginMode("employee"); return; }
+
+  renderLoginMode("employee");
+  document.getElementById("loginSub").textContent = "جارٍ التحقق من الحساب...";
+
+  try {
+    const data = await apiGet("check_employee", { username });
+    if (!data.exists)   { showLoginAlert("المستخدم غير موجود"); sel.value = ""; renderLoginMode("employee"); playBeep("error"); return; }
+    if (!data.isActive) { showLoginAlert("الحساب موقوف — تواصل مع المسؤول"); sel.value = ""; renderLoginMode("employee"); playBeep("error"); return; }
+    renderLoginMode(data.hasPin ? "existing" : "new");
+  } catch (err) {
+    showLoginAlert(err.message || "تعذّر التحقق من الحساب");
+    sel.value = ""; renderLoginMode("employee"); playBeep("error");
+  }
+}
+
+function renderLoginMode(mode) {
+  loginMode = mode;
+  const pinZone   = document.getElementById("pinZone");
+  const pinLabel  = document.getElementById("pinLabel");
+  const primary   = document.getElementById("loginPrimaryBtn");
+  const secondary = document.getElementById("loginSecondaryBtn");
+
+  pinZone.classList.toggle("visible", mode !== "employee");
+  primary.classList.toggle("visible", mode !== "employee");
+  secondary.classList.toggle("visible", mode === "confirm");
+  resetPinState(false);
+  clearLoginAlert();
+
+  const sub = document.getElementById("loginSub");
+  if (mode === "employee") { sub.textContent = "";                                pinLabel.textContent = "أدخل الـ PIN";  primary.textContent = "دخول";               primary.disabled = true; return; }
+  if (mode === "existing") { sub.textContent = "أدخل الـ PIN";                    pinLabel.textContent = "أدخل الـ PIN";  primary.textContent = "دخول";               primary.disabled = true; return; }
+  if (mode === "new")      { sub.textContent = "أول مرة؟ أنشئ PIN من 4 أرقام";   pinLabel.textContent = "أنشئ PIN جديد"; primary.textContent = "متابعة";             primary.disabled = true; return; }
+  if (mode === "confirm")  { sub.textContent = "أعد إدخال الـ PIN للتأكيد";       pinLabel.textContent = "تأكيد الـ PIN";  primary.textContent = "تأكيد وتسجيل الدخول"; primary.disabled = true; }
+}
+
+function restartNewPinFlow() { pendingNewPin = ""; renderLoginMode("new"); }
+
+function pressPinKey(key) {
+  if (isLoginBusy || loginMode === "employee") return;
+  clearTimeout(autoLoginTimer);
+  if      (key === "clear")                           pinDigits = [];
+  else if (key === "back")                            pinDigits.pop();
+  else if (/^\d$/.test(key) && pinDigits.length < 4)  pinDigits.push(key);
+  clearLoginAlert();
+  renderPinSlots();
+  updatePrimaryLoginState();
+  if (pinDigits.length === 4) autoLoginTimer = setTimeout(() => handlePrimaryLoginAction(), 140);
+}
+
+function renderPinSlots() {
+  for (let i = 0; i < 4; i++) {
+    const slot = document.getElementById(`pinSlot${i}`);
+    slot.classList.remove("empty", "filled", "error");
+    slot.classList.add(i < pinDigits.length ? "filled" : "empty");
+  }
+}
+
+function resetPinState(clearPending = true) {
+  pinDigits = [];
+  if (clearPending && loginMode !== "confirm") pendingNewPin = "";
+  renderPinSlots();
+  updatePrimaryLoginState();
+}
+
+function updatePrimaryLoginState() {
+  document.getElementById("loginPrimaryBtn").disabled =
+    loginMode === "employee" || pinDigits.length !== 4 || isLoginBusy;
+}
+
+async function handlePrimaryLoginAction() {
+  if (isLoginBusy || loginMode === "employee" || pinDigits.length !== 4) return;
+  if (loginMode === "existing") { await verifyExistingPin(); return; }
+  if (loginMode === "new")      { pendingNewPin = pinDigits.join(""); renderLoginMode("confirm"); return; }
+  if (loginMode === "confirm")  { await registerNewPinAndLogin(); }
+}
+
+async function verifyExistingPin() {
+  const username = document.getElementById("loginSelect").value;
+  const pin      = pinDigits.join("");
+  setLoginBusy(true, "⏳ جاري التحقق...");
+  try {
+    const data = await apiPost("verify_employee", { username, pin });
+    if (!data.ok) { await presentLoginPinError("PIN خطأ — حاول مرة أخرى"); return; }
+    await finishLogin(username, data.displayName, data.logged);
+  } catch (err) {
+    await presentLoginPinError(err.message || "PIN خطأ");
+  } finally { setLoginBusy(false); }
+}
+
+async function registerNewPinAndLogin() {
+  const username   = document.getElementById("loginSelect").value;
+  const confirmPin = pinDigits.join("");
+  if (confirmPin !== pendingNewPin) {
+    await presentLoginPinError("الـ PIN غير متطابق — حاول مرة أخرى");
+    pendingNewPin = ""; renderLoginMode("new"); return;
+  }
+  setLoginBusy(true, "⏳ جاري التسجيل...");
+  try {
+    const reg = await apiPost("register_pin", { username, pin: pendingNewPin });
+    if (reg && reg.ok === false) { await presentLoginPinError(reg.error || "تعذّر تسجيل الـ PIN"); return; }
+    const data = await apiPost("verify_employee", { username, pin: pendingNewPin });
+    if (!data.ok) { await presentLoginPinError(data.error || "تعذّر تسجيل الدخول"); return; }
+    await finishLogin(username, data.displayName, data.logged);
+  } catch (err) {
+    await presentLoginPinError(err.message || "تعذّر تسجيل الـ PIN");
+  } finally { setLoginBusy(false); }
+}
+
+function setLoginBusy(active, text = "") {
+  isLoginBusy = active;
+  const primary = document.getElementById("loginPrimaryBtn");
+  document.querySelectorAll("#pinKeypad .pin-key").forEach(b => b.disabled = active);
+  document.getElementById("loginSelect").disabled = active || !isConfigured();
+  if (active) {
+    primary.dataset.prevText = primary.textContent;
+    primary.textContent      = text || primary.textContent;
+    primary.disabled         = true;
+  } else {
+    primary.textContent = primary.dataset.prevText || primary.textContent;
+    delete primary.dataset.prevText;
+    updatePrimaryLoginState();
+  }
+}
+
+async function presentLoginPinError(message) {
+  playBeep("error");
+  showLoginAlert(message);
+  const slots = document.getElementById("pinSlots");
+  slots.classList.add("shake");
+  for (let i = 0; i < 4; i++) document.getElementById(`pinSlot${i}`).classList.add("error");
+  await new Promise(r => setTimeout(r, 760));
+  slots.classList.remove("shake");
+  pinDigits = []; renderPinSlots(); updatePrimaryLoginState();
+}
+
+function showLoginAlert(msg) {
+  const a = document.getElementById("loginAlert");
+  a.textContent = msg; a.classList.add("visible");
+}
+function clearLoginAlert() {
+  const a = document.getElementById("loginAlert");
+  a.textContent = ""; a.classList.remove("visible");
+}
+
+document.addEventListener("keydown", e => {
+  const loginVisible = !document.getElementById("loginOverlay").classList.contains("hidden");
+  // ⚠️ العنصر اسمه settingsOverlay — 'settingsModal' غير موجود ويرمي استثناء
+  const settingsOpen = document.getElementById("settingsOverlay").classList.contains("open");
+  if (!loginVisible || settingsOpen || isLoginBusy) return;
+  if (/^\d$/.test(e.key))                       { e.preventDefault(); pressPinKey(e.key);   return; }
+  if (e.key === "Backspace")                    { e.preventDefault(); pressPinKey("back");  return; }
+  if (e.key === "Delete" || e.key === "Escape") { e.preventDefault(); pressPinKey("clear"); return; }
+  if (e.key === "Enter")                        { e.preventDefault(); handlePrimaryLoginAction(); }
+});
+
+async function finishLogin(username, displayName, logged) {
+  currentEmployee = { username, displayName };
+  document.getElementById("loginOverlay").classList.add("hidden");
+  document.getElementById("headerEmployee").textContent = `👤 ${displayName}`;
+  showToast(`أهلاً ${displayName} 👋`, "success");
+  playBeep("success");
+  if (logged === false) showToast("الدخول تم بس تسجيله في السجل فشل", "warn", 5000);
+
+  // ── CUSTOMIZE: post-login ──
+  checkWorkerVersion();
+  loadOrders();
+  loadLogs();
+}
+
+async function doLogout() {
+  if (!confirm("تسجيل الخروج؟")) return;
+  if (currentEmployee) apiGet("log_logout", { username: currentEmployee.username }).catch(() => {});
+
+  currentEmployee = null;
+  loginMode       = "employee";
+  pinDigits       = [];
+  pendingNewPin   = "";
+  isLoginBusy     = false;
+  clearTimeout(autoLoginTimer);
+
+  const sel = document.getElementById("loginSelect");
+  sel.value = "";
+  document.getElementById("pinSlots").classList.remove("shake");
+  renderPinSlots();
+  renderLoginMode("employee");
+  clearLoginAlert();
+
+  // ── CUSTOMIZE: tool reset ──
+  document.getElementById("headerEmployee").textContent = "";
+  document.getElementById("trackResults").innerHTML = "";
+  allOrders = []; filteredLogs = []; allLogs = [];
+  selectedIds.clear();
+  logsLoaded = false;
+
+  document.getElementById("loginOverlay").classList.remove("hidden");
+  loadEmployeesList();
+}
+
+function updateLoginSettingsBtn() {
+  const btn = document.getElementById("loginSettingsBtn");
+  if (!btn) return;
+  btn.classList.toggle("ready",   isConfigured());
+  btn.classList.toggle("missing", !isConfigured());
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// §TOOL-JS
+// ══════════════════════════════════════════════════════════════
 let currentTab   = "print";
 let logsLoaded   = false;
 let lastUpdatedText = "";
@@ -520,18 +1217,6 @@ function switchTab(tab, btn) {
   if (tab === "logs" && !logsLoaded) loadLogs();
 }
 function handleRefresh() { loadOrders(true); loadLogs(); }
-
-async function apiPost(path, body = {}) {
-  const { workerUrl, secret } = getConfig();
-  const resp = await fetch(`${workerUrl}${path}`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${secret}` },
-    body:    JSON.stringify(body),
-  });
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
-  return data;
-}
 
 let allOrders      = [];
 let filteredOrders = [];
@@ -550,10 +1235,11 @@ async function loadOrders(forceRefresh = false) {
   showPrint("printLoadingState");
   try {
     const [ordersData, logsData] = await Promise.all([
-      apiPost("/orders", { forceRefresh }),
-      apiPost("/logs", {}),
+      apiPath("/orders", { forceRefresh }),
+      apiPath("/logs", {}),
     ]);
     allOrders = ordersData.orders || [];
+    renderLogTruncationWarning(logsData, { toast: true });
     selectedIds.clear();
     const logEntries = logsData.entries || [];
     printCountsMap = {};
@@ -743,41 +1429,116 @@ function closeConfirm() {
 }
 
 async function executePrint(selectedOrders) {
+  if (!currentEmployee) { showToast("سجّل الدخول أولاً", "error"); return; }
   showPrintLoading(`جاري تحضير ${selectedOrders.length} فاتورة...`);
   try {
     const invoices = await Promise.all(
-      selectedOrders.map(o => apiPost("/invoice", { orderId: o.id }).then(d => d.invoice))
+      selectedOrders.map(o => apiPath("/invoice", { orderId: o.id }).then(d => {
+        if (d.truncatedLineItems) {
+          showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
+        }
+        return d.invoice;
+      }))
     );
     showPrintLoading("جاري رسم الفواتير...");
     const invoiceHTML = invoices.map(inv =>
       inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)
     ).join("");
-    await Promise.all(
-      invoices.map(inv =>
-        apiPost("/track", { orderId: inv.id, orderNumber: inv.name, type: inv.type }).catch(() => {})
-      )
-    );
+
+    // ⚠️ التسجيل **مش** بـ .catch(() => {}) — فشل التسجيل لازم يوصل للموظف.
+    // والنتيجة بتتقرا من الـ Worker كما هي: success | warning | error.
+    const tracked = await Promise.all(invoices.map(inv =>
+      apiPath("/track", {
+        orderId:     inv.id,
+        orderNumber: inv.name,
+        type:        inv.type,
+        employee:    currentEmployee.username,
+      })
+        .then(res => ({ ...res, orderNumber: res.orderNumber || inv.name, type: inv.type }))
+        .catch(err => ({
+          status: "error", orderNumber: inv.name, type: inv.type,
+          actions: [], warnings: [], errors: [err.message], logged: false,
+        }))
+    ));
+
     showPrintLoading("جاري فتح نافذة الطباعة...");
     await printViaIframe(invoiceHTML, invoices.length);
+
     for (const inv of invoices) {
       const num = inv.name.replace("#","");
       printCountsMap[num] = (printCountsMap[num] || 0) + 1;
     }
+    renderTrackResults(tracked);
     clearSelection();
     updatePrintKPIs();
     applyPrintFilters();
-    showPrintLoading("تم الإرسال للطباعة ✓ جاري تحديث القائمة...");
-    await new Promise(r => setTimeout(r, 5000));
     hidePrintLoading();
     await loadOrders(true);
     if (logsLoaded) loadLogs();
   } catch (err) {
     hidePrintLoading();
-    alert("خطأ: " + err.message);
+    showToast("خطأ: " + err.message, "error", 7000);
   }
 }
 
+// ─── §TOOL-JS::renderTrackResults ───
+// ٣ حالات مش اتنين — والحالة جاية من الـ Worker كما هي، مش مشتقّة من success.
+function renderTrackResults(rows) {
+  const box = document.getElementById("trackResults");
+  if (!rows || !rows.length) { box.innerHTML = ""; return; }
+
+  const n = t => rows.filter(r => (r.status || "error") === t).length;
+  const ok = n("success"), warn = n("warning"), bad = n("error");
+  if (bad)       playBeep("error");
+  else if (warn) playBeep("warn");
+  else           playBeep("success");
+
+  const badge = st => st === "success" ? '<span class="result-badge badge-success">✓ تم</span>'
+                    : st === "warning" ? '<span class="result-badge badge-warn">⚠ تم جزئيًا</span>'
+                                       : '<span class="result-badge badge-danger">✗ فشل</span>';
+
+  box.innerHTML =
+    '<div class="results-panel">' +
+      '<div class="results-head">' +
+        '<span>نتيجة تسجيل الطباعة</span>' +
+        `<span class="results-summary">تم: ${ok} ✓ | تحذير: ${warn} ⚠ | فشل: ${bad} ✗</span>` +
+        '<div style="flex:1"></div>' +
+        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'trackResults\').innerHTML=\'\'">إخفاء</button>' +
+      '</div>' +
+      '<div class="results-list">' +
+      rows.map(r => {
+        const st = r.status || "error";
+        const parts = [
+          `<div>${badge(st)} <b>${escHtml(r.orderNumber || "")}</b> <span style="color:var(--text-secondary)">[${escHtml(r.type || "")}]</span></div>`,
+          `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
+        ];
+        (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
+        (r.errors   || []).forEach(e => parts.push(`<div class="result-detail">✗ ${escHtml(e)}</div>`));
+        if (r.logged === false) parts.push('<div class="result-warn">⚠ العملية تمت لكن ما اتسجلتش في السجل</div>');
+        return `<div class="result-row ${st}">${parts.join("")}</div>`;
+      }).join("") +
+      '</div>' +
+    '</div>';
+}
+
+// ─── §TOOL-JS::renderLogTruncationWarning ───
+// السقف بيرجع من الـ Worker (cap) — الواجهة ماتكتبهوش عندها.
+function renderLogTruncationWarning(data, { toast = false } = {}) {
+  const w = document.getElementById("logExportWarn");
+  if (!w) return;
+  if (!data || data.truncated !== true) { w.style.display = "none"; w.innerHTML = ""; return; }
+  w.innerHTML = `⚠️ <b>سجل الطباعة اتقص</b> — معروض ${(data.count || 0).toLocaleString("en-US")} صف ` +
+    `من أصل <b>${(data.total || 0).toLocaleString("en-US")}</b> (سقف الـ Worker ${(data.cap || 0).toLocaleString("en-US")}). ` +
+    `عدّاد "طُبع كام مرة" ممكن يكون ناقص للأوردرات القديمة — ضيّق الفترة.`;
+  w.style.display = "";
+  if (toast) showToast("⚠️ سجل الطباعة اتقص — عدّاد \"طُبع كام مرة\" ممكن يكون ناقص", "warn", 7000);
+}
+
 // ── iframe Print ─────────────────────────────────────────────────────────────
+// ⚠️ استثناء موثّق من Standards #35 (صفر hex حرفي): مستند الـ iframe بيتبني
+// من الصفر ومالوش أي وصول لـ :root بتاع الصفحة، فـ var(--token) بترجع فاضية
+// جوّاه. كل الألوان في HTML الفاتورة (#000 / #fff / #555 وألوان أيقونات SVG)
+// **لازم** تفضل حرفية — دي حدود تقنية مش إهمال.
 // بيفتح نافذة الطباعة مع محتوى الفواتير فقط (بدون الـ UI).
 // المستخدم يختار "Save as PDF" من الـ print dialog.
 // الجودة مثالية — الـ browser نفسه بيرسم الـ PDF.
@@ -871,8 +1632,9 @@ async function loadLogs() {
   if (!isConfigured()) { openSettings(); return; }
   showLogs("logsLoadingState");
   try {
-    const data = await apiPost("/logs", {});
+    const data = await apiPath("/logs", {});
     allLogs    = data.entries || [];
+    renderLogTruncationWarning(data);
     logsLoaded = true;
     buildLogPrintCounts();
     printCountsMap = { ...logCounts };
@@ -955,7 +1717,7 @@ function renderLogsTable() {
   footer.textContent = `عرض ${filteredLogs.length.toLocaleString("en-US")} من إجمالي ${allLogs.length.toLocaleString("en-US")} عملية`;
 }
 async function exportLogsXLSX() {
-  if (!filteredLogs.length) { alert("لا توجد بيانات للتصدير"); return; }
+  if (!filteredLogs.length) { showToast("لا توجد بيانات للتصدير", "warn"); return; }
   const wb = new ExcelJS.Workbook();
   wb.views = [{ rightToLeft: true }];
   const ws = wb.addWorksheet("سجل الطباعة");
@@ -1210,7 +1972,7 @@ function renderFooter() {
 function statusCell(status) {
   if (status === "Confirmed + Edit") {
     return '<span style="display:inline-flex;align-items:center;gap:4px;">'
-      + '<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #fcd34d;">✏️ Edit</span>'
+      + '<span style="background:var(--amber-light);color:var(--amber-dark);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid var(--amber-border);">✏️ Edit</span>'
       + escHtml(status)
       + '</span>';
   }
@@ -1239,15 +2001,19 @@ function formatInvoiceDate(iso) {
   return new Date(iso).toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" });
 }
 
+// ── Init — الأداة بتقف على شاشة الدخول؛ تحميل الداتا بيحصل في finishLogin() ──
 window.addEventListener("load", () => {
   currentTab = "print";
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach((b,i) => { if(i===0) b.classList.add("active"); });
   document.getElementById("tab-print").classList.add("active");
-  if (!isConfigured()) { openSettings(); return; }
-  loadOrders();
-  loadLogs();
+
+  renderVersionUI();
+  updateLoginSettingsBtn();
+  renderLoginMode("employee");
+  loadEmployeesList();
+  if (isConfigured()) checkWorkerVersion();
 });
 </script>
 </body>
