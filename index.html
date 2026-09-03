@@ -1377,8 +1377,18 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.1.0</span>
+          <span class="cl-ver">v3.1.1</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">03-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span>الطباعة كانت بتقف بخطأ <code>formatInvoiceDate is not defined</code> — الدالة كانت اتشالت سهوًا في v3.0.0 والنداء عليها فضل. رجعت، وتاريخ الفاتورة بقى بيوم القاهرة زي باقي التواريخ.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.1.0</span>
           <span class="cl-date">03-09-2026</span>
         </div>
         <div class="cl-list">
@@ -1493,7 +1503,7 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.1.0";
+const TOOL_VERSION = "3.1.1";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
@@ -1732,6 +1742,16 @@ function cairoDayStr(iso) {
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
 }
 function cairoToday() { return cairoDayStr(new Date().toISOString()); }
+
+// تاريخ الفاتورة المطبوعة — إنجليزي بيوم القاهرة (أسماء الشهور ثابتة، مش معتمدة على locale الجهاز)
+const INVOICE_MONTHS = ["January","February","March","April","May","June",
+                        "July","August","September","October","November","December"];
+function formatInvoiceDate(iso) {
+  if (!iso) return "—";
+  const d = toCairo(iso);
+  if (isNaN(d.getTime())) return "—";
+  return `${INVOICE_MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
 
 // ─── Order number → hyperlink (design-system § Order Number Display) ───
 const SHOP_DOMAIN = "6c7e1a-53.myshopify.com";

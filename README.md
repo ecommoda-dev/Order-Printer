@@ -2,7 +2,7 @@
 
 # طابعة الفواتير — Order Printer
 
-![version](https://img.shields.io/badge/version-v3.1.0-blue)
+![version](https://img.shields.io/badge/version-v3.1.1-blue)
 
 أداة داخلية لـ EcomModa: الموظف بيسجّل دخول بـ PIN، بيختار الأوردرات الجاهزة
 للطباعة، بيطبع فواتيرها، والأداة بتسجّل الطباعة **باسمه** وبتحدّث حالة الأوردر
@@ -44,6 +44,6 @@ git push على main  ─┬─→  Workers Builds  →  الـ Worker لايف 
 حقل واحد بس في شاشة الإعدادات: **`WORKER SECRET`**. رابط الـ Worker ثابت في
 الكود (`§CONFIG`) — مش سر ومش حقل إدخال.
 
-آخر تحديث: 03-09-2026 — 17:30
+آخر تحديث: 03-09-2026 — 18:30
 
 </div>
