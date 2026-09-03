@@ -850,18 +850,14 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     <!-- ─── §TOOL::trackResults ─── -->
     <div id="trackResults"></div>
 
-    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);">
       <div class="kpi-card">
         <div class="kpi-value" id="kpiS1">0</div>
-        <div class="kpi-label">أوردر عادي (S1)</div>
+        <div class="kpi-label">عادي</div>
       </div>
       <div class="kpi-card amber">
         <div class="kpi-value" id="kpiS2">0</div>
-        <div class="kpi-label">استبدال/استرجاع (S2)</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-value" id="kpiZoneExcluded">0</div>
-        <div class="kpi-label">مستبعَد بفلتر الـ zone</div>
+        <div class="kpi-label">استبدال/استرجاع</div>
       </div>
     </div>
 
@@ -955,37 +951,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             </div>
           </div>
 
-          <div class="flt-g">
-            <span class="flt-label">الإجمالي</span>
-            <div class="ms-wrap" id="msWrap-pTotal">
-              <button class="ms-btn" id="msBtn-pTotal" onclick="msToggle('pTotal')"><span id="msBtnLabel-pTotal">الكل</span><span class="ms-arrow">▾</span></button>
-              <div class="ms-menu" id="msMenu-pTotal">
-                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pTotal')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pTotal"></span></div>
-                <div class="ms-modes">
-                  <button class="ms-mode-btn active" id="msModeBtn-pTotal-list" onclick="msSwitchMode('pTotal','list')">☰ قائمة قيم</button>
-                  <button class="ms-mode-btn" id="msModeBtn-pTotal-range" onclick="msSwitchMode('pTotal','range')">↔ نطاق من-إلى</button>
-                </div>
-                <div class="ms-mode-panel active" id="msPanel-pTotal-list">
-                  <div class="ms-search-wrap"><input type="text" class="ms-search" id="msSearch-pTotal" oninput="msFilterList('pTotal', this.value)" placeholder="بحث..."></div>
-                  <div class="ms-selectall-row" onclick="msToggleSelectAll('pTotal')">
-                    <input type="checkbox" id="msSelectAll-pTotal" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pTotal', this.checked)">
-                    <span id="msSelectAllLabel-pTotal">تحديد الكل</span>
-                  </div>
-                  <div class="ms-list" id="msList-pTotal"></div>
-                </div>
-                <div class="ms-mode-panel" id="msPanel-pTotal-range">
-                  <div class="ms-range-body">
-                    <div class="ms-range-row">
-                      <div class="ms-range-g"><span class="ms-range-lbl">من</span><input type="number" class="ms-range-input" id="msRangeFrom-pTotal" oninput="msRangeChanged('pTotal')" placeholder="0"></div>
-                      <div class="ms-range-g"><span class="ms-range-lbl">إلى</span><input type="number" class="ms-range-input" id="msRangeTo-pTotal" oninput="msRangeChanged('pTotal')" placeholder="∞"></div>
-                    </div>
-                    <div class="ms-range-hint">النطاق يُلغي أي قيم مختارة من القائمة تلقائيًا (واحد بس شغال في نفس الوقت).</div>
-                    <button class="ms-range-clear" onclick="msRangeClear('pTotal')">✕ مسح النطاق</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- صف 2: بحث ← فترة سريعة ← من ← إلى -->
@@ -1028,7 +993,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <div class="ms-chips-row" id="chipsRow-pType"></div>
         <div class="ms-chips-row" id="chipsRow-pStatus"></div>
         <div class="ms-chips-row" id="chipsRow-pCount"></div>
-        <div class="ms-chips-row" id="chipsRow-pTotal"></div>
       </div>
 
       <div class="section-divider"></div>
@@ -1058,7 +1022,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
               <th class="sortable-th" data-sort-key="customer" onclick="toggleSort('print','customer')">العميل<span class="sort-icon" data-sort-key="customer"></span></th>
               <th class="sortable-th" data-sort-key="type"     onclick="toggleSort('print','type')">النوع<span class="sort-icon" data-sort-key="type"></span></th>
               <th class="sortable-th" data-sort-key="status"   onclick="toggleSort('print','status')">الحالة<span class="sort-icon" data-sort-key="status"></span></th>
-              <th class="sortable-th" data-sort-key="total"    onclick="toggleSort('print','total')">الإجمالي<span class="sort-icon" data-sort-key="total"></span></th>
               <th class="sortable-th" data-sort-key="count"    onclick="toggleSort('print','count')">مرات الطباعة<span class="sort-icon" data-sort-key="count"></span></th>
             </tr></thead>
             <tbody id="printTableBody"></tbody>
@@ -1322,7 +1285,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <details class="about-sec" open>
         <summary>📋 وصف الأداة</summary>
         <div class="about-sec-body">
-          <p><strong>الهدف:</strong> الموظف بيختار الأوردرات الجاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ <code>Ready</code> على شوبيفاي.</p>
+          <p><strong>الهدف:</strong> الموظف بيختار الأوردرات الجاهزة للطباعة (عادي · استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ <code>Ready</code> على شوبيفاي.</p>
           <p><strong>المستخدمون المستهدفون:</strong> موظفو المخزن.</p>
 
           <h4>كيف تعمل — Workflow</h4>
@@ -1338,7 +1301,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <h4>الـ Endpoints الرئيسية</h4>
           <table>
             <tr><th>المسار / action</th><th>الوصف</th></tr>
-            <tr><td><code>POST /orders</code></td><td>أوردرات S1 + S2 الجاهزة (+ <code>zoneExcluded</code>)</td></tr>
+            <tr><td><code>POST /orders</code></td><td>الأوردرات الجاهزة — عادي (<code>S1</code>) واستبدال/استرجاع (<code>S2</code>) — و<code>zoneExcluded</code></td></tr>
             <tr><td><code>POST /invoice</code></td><td>بيانات فاتورة أوردر واحد (+ <code>truncatedLineItems</code>)</td></tr>
             <tr><td><code>POST /track</code></td><td>تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة <code>Ready</code> — بيطلب <code>employee</code></td></tr>
             <tr><td><code>POST /logs</code></td><td>سجل الطباعة (+ <code>cap</code> · <code>total</code> · <code>truncated</code>)</td></tr>
@@ -1384,12 +1347,13 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>LS_SECRET = 'order_printer_worker_secret'</code> — المفتاح الوحيد في <code>localStorage</code></li>
             <li><code>WORKER_URL</code> — ثابت في <code>§CONFIG</code>، مش حقل إعدادات (Standards #28)</li>
             <li><code>msState</code> — حالة كل فلاتر التابين بمفاتيح مسبوقة بـ <code>p</code> (طباعة) أو <code>l</code> (سجل)</li>
+            <li><code>TYPE_LABEL</code> — تسميات العرض بس (عادي / استبدال/استرجاع). قيم D1 وعقد الـ Worker بتفضل <code>S1</code>/<code>S2</code></li>
             <li><code>sec.print</code> / <code>sec.log</code> — حالة البحث والتاريخ والترتيب لكل قسم على حدة</li>
           </ul>
 
           <h4>NOTES / QUIRKS</h4>
           <ul>
-            <li><code>ZONE_FILTER</code> بيتطبّق في الـ Worker — «الأوردر مش ظاهر» يعني <code>custom.zone</code> بره <code>Cairo+Giza</code>/<code>Show_Room</code>. العدد المستبعَد معروض في KPI.</li>
+            <li><code>ZONE_FILTER</code> بيتطبّق في الـ Worker — «الأوردر مش ظاهر» يعني <code>custom.zone</code> بره <code>Cairo+Giza</code>/<code>Show_Room</code> (أو فاضي خالص). العدد المستبعَد لسه بيرجع في <code>/orders</code> كـ <code>zoneExcluded</code> لكنه مش معروض في الواجهة.</li>
             <li><code>Delivered</code> حالة نهائية — الطباعة بتتسجّل بس الحالة <strong>مش</strong> بتتكتب، والنتيجة بترجع <code>warning</code>.</li>
             <li>عدّاد «مرات الطباعة» بيتبني من سجل D1، وبيقصّ عند سقف الـ Worker — البانر فوق جدول السجل بيقول لو ده حصل.</li>
             <li>مستند الـ <code>iframe</code> بتاع الفاتورة مالوش وصول لـ <code>:root</code>، فألوانه حرفية — استثناء تقني موثّق من Standards #35.</li>
@@ -1413,8 +1377,20 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.0.0</span>
+          <span class="cl-ver">v3.1.0</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">03-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>النوع بقى مكتوب بالعربي: «عادي» و«استبدال/استرجاع» بدل S1 و S2 — في الجدولين والفلاتر والتصدير.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>اتشال مربّع «مستبعَد بفلتر الـ zone».</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>اتشال عمود «الإجمالي» من جدول الطباعة، ومعاه الفلتر بتاعه.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.0.0</span>
           <span class="cl-date">03-09-2026</span>
         </div>
         <div class="cl-list">
@@ -1517,7 +1493,7 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.0.0";
+const TOOL_VERSION = "3.1.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
@@ -1789,6 +1765,12 @@ function statusCell(status) {
   return `<span class="status-badge ${cls}">${warn}${escHtml(status)}</span>`;
 }
 function countClass(c) { return c >= 3 ? "count-3" : c === 2 ? "count-2" : c === 1 ? "count-1" : "count-0"; }
+// ⚠️ العرض بس — القيمة المخزّنة في D1 وفي عقد الـ Worker بتفضل "S1"/"S2"
+const TYPE_LABEL = { S1: "عادي", S2: "استبدال/استرجاع" };
+function typeLabel(t) { return TYPE_LABEL[t] || t; }
+function typeBadge(t) {
+  return `<span class="type-badge ${String(t).toLowerCase()}">${escHtml(typeLabel(t))}</span>`;
+}
 
 // ══════════════════════════════════════════════════════════════
 // §TABLE-JS — المنطق العام للقسمين (data-table-standard.md)
@@ -1799,25 +1781,24 @@ const msState = {
   pType:   { items: [], selected: new Set(), search: "", mode: "list" },
   pStatus: { items: [], selected: new Set(), search: "", mode: "list" },
   pCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
-  pTotal:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
   lType:   { items: [], selected: new Set(), search: "", mode: "list" },
   lCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
   lEmp:    { items: [], selected: new Set(), search: "", mode: "list" },
 };
-const keySection  = { pType:"print", pStatus:"print", pCount:"print", pTotal:"print", lType:"log", lCount:"log", lEmp:"log" };
+const keySection  = { pType:"print", pStatus:"print", pCount:"print", lType:"log", lCount:"log", lEmp:"log" };
 const filterLabels = {
-  pType:"النوع", pStatus:"الحالة", pCount:"مرات الطباعة", pTotal:"الإجمالي",
+  pType:"النوع", pStatus:"الحالة", pCount:"مرات الطباعة",
   lType:"النوع", lCount:"مرات الطباعة", lEmp:"الموظف",
 };
 const sec = {
-  print: { keys:["pType","pStatus","pCount","pTotal"], searchTerm:"", dateFrom:null, dateTo:null,
+  print: { keys:["pType","pStatus","pCount"], searchTerm:"", dateFrom:null, dateTo:null,
            dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
   log:   { keys:["lType","lCount","lEmp"],             searchTerm:"", dateFrom:null, dateTo:null,
            dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
 };
 const sortConfig = {
   name:{type:"string"}, customer:{type:"string"}, type:{type:"string"}, status:{type:"string"},
-  emp:{type:"string"}, total:{type:"number"}, count:{type:"number"},
+  emp:{type:"string"}, count:{type:"number"},
   date:{type:"date"}, time:{type:"date"},
 };
 
@@ -2134,7 +2115,6 @@ let allOrders      = [];
 let filteredOrders = [];
 let selectedIds    = new Set();
 let printCountsMap = {};
-let zoneExcluded   = 0;
 
 function showPrint(id) {
   ["printLoadingState","printErrorState","printDashboard"].forEach(s => {
@@ -2150,8 +2130,7 @@ async function loadOrders(forceRefresh = false) {
       apiPath("/orders", { forceRefresh }),
       apiPath("/logs", {}),
     ]);
-    allOrders    = ordersData.orders || [];
-    zoneExcluded = ordersData.zoneExcluded || 0;
+    allOrders = ordersData.orders || [];
     selectedIds.clear();
 
     allLogs = logsData.entries || [];
@@ -2182,10 +2161,9 @@ function getPrintCount(order) {
 
 function rebuildPrintFilterItems() {
   const rows = decoratePrintRows();
-  rebuildMsItems("pType",   [...new Set(rows.map(r => r.type))].sort());
+  rebuildMsItems("pType",   [...new Set(rows.map(r => r.type))].sort(), typeLabel);
   rebuildMsItems("pStatus", [...new Set(rows.map(r => r.status).filter(Boolean))].sort());
   rebuildMsItems("pCount",  [...new Set(rows.map(r => r.count))].sort((a,b)=>a-b));
-  rebuildMsItems("pTotal",  [...new Set(rows.map(r => r.total))].sort((a,b)=>a-b), v => money(v));
 }
 
 function decoratePrintRows() {
@@ -2201,7 +2179,6 @@ function decoratePrintRows() {
 function updatePrintKPIs() {
   document.getElementById("kpiS1").textContent = allOrders.filter(o => o.type === "S1").length.toLocaleString("en-US");
   document.getElementById("kpiS2").textContent = allOrders.filter(o => o.type === "S2").length.toLocaleString("en-US");
-  document.getElementById("kpiZoneExcluded").textContent = zoneExcluded.toLocaleString("en-US");
 }
 
 function applyPrintFilters() {
@@ -2213,7 +2190,6 @@ function applyPrintFilters() {
     if (msState.pType.selected.size   && !msState.pType.selected.has(o.type))     return false;
     if (msState.pStatus.selected.size && !msState.pStatus.selected.has(o.status)) return false;
     if (!numericPass("pCount", o.count)) return false;
-    if (!numericPass("pTotal", o.total)) return false;
     if (s.dateFrom && o.day < s.dateFrom) return false;
     if (s.dateTo   && o.day > s.dateTo)   return false;
     return true;
@@ -2226,7 +2202,7 @@ function applyPrintFilters() {
 function renderPrintTable(rows) {
   const tbody = document.getElementById("printTableBody");
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">لا توجد أوردرات تطابق الفلاتر</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">لا توجد أوردرات تطابق الفلاتر</td></tr>';
   } else {
     tbody.innerHTML = rows.map(o => {
       const isSel = selectedIds.has(o.id);
@@ -2237,9 +2213,8 @@ function renderPrintTable(rows) {
         <td>${formatDate(o.createdAt)}</td>
         <td>${formatTimeOnly(o.createdAt)}</td>
         <td>${escHtml(o.customer)}</td>
-        <td><span class="type-badge ${o.type.toLowerCase()}">${escHtml(o.type)}</span></td>
+        <td>${typeBadge(o.type)}</td>
         <td>${statusCell(o.status)}</td>
-        <td class="col-num">${money(o.total)}</td>
         <td><span class="count-badge ${countClass(c)}">${c}</span></td>
       </tr>`;
     }).join("");
@@ -2290,7 +2265,7 @@ function showConfirmReprint(alreadyPrinted, allSelected) {
   document.getElementById("confirmOrdersList").innerHTML = alreadyPrinted.map(o =>
     `<div class="confirm-order-item">
        <span>${orderLink(o.name, o.orderId)}</span>
-       <span class="confirm-order-meta">اتطبع ${o.count.toLocaleString("en-US")} مرة · ${escHtml(o.type)}</span>
+       <span class="confirm-order-meta">اتطبع ${o.count.toLocaleString("en-US")} مرة · ${escHtml(typeLabel(o.type))}</span>
      </div>`).join("");
   const btn = document.getElementById("confirmPrintBtn");
   const fresh = btn.cloneNode(true);          // بيمسح أي listener قديم
@@ -2368,7 +2343,7 @@ function renderTrackResults(rows) {
       rows.map(r => {
         const st = r.status || "error";
         const parts = [
-          `<div>${badge(st)} ${orderLink(r.orderNumber || "", r.orderId)} <span style="color:var(--text-secondary)">[${escHtml(r.type || "")}]</span></div>`,
+          `<div>${badge(st)} ${orderLink(r.orderNumber || "", r.orderId)} <span style="color:var(--text-secondary)">[${escHtml(typeLabel(r.type))}]</span></div>`,
           `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
         ];
         (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
@@ -2447,8 +2422,7 @@ function decorateLogRows() {
 
 function rebuildLogFilterItems() {
   const rows = decorateLogRows();
-  rebuildMsItems("lType",  [...new Set(rows.map(r => r.type))].sort(),
-                 v => v === "S2" ? "S2 — استبدال/استرجاع" : "S1 — أوردر عادي");
+  rebuildMsItems("lType",  [...new Set(rows.map(r => r.type))].sort(), typeLabel);
   rebuildMsItems("lCount", [...new Set(rows.map(r => r.count))].sort((a,b)=>a-b));
   rebuildMsItems("lEmp",   [...new Set(rows.map(r => r.emp))].sort());
 }
@@ -2491,7 +2465,7 @@ function renderLogsTable(rows) {
     <td>${formatDate(e.timestamp)}</td>
     <td>${formatTimeOnly(e.timestamp)}</td>
     <td>${orderLink(e.orderNumber, e.orderId)}</td>
-    <td><span class="type-badge ${String(e.type).toLowerCase()}">${escHtml(e.type)}</span></td>
+    <td>${typeBadge(e.type)}</td>
     <td>${escHtml(e.emp)}</td>
     <td><span class="count-badge ${countClass(e.count)}">${e.count}</span></td>
   </tr>`).join("");
@@ -2516,7 +2490,7 @@ async function exportLogsXLSX() {
       date:  formatDateForExport(e.timestamp),
       time:  formatTimeForExport(e.timestamp),
       num:   `#${e.orderNumber}`,
-      type:  e.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي",
+      type:  typeLabel(e.type),
       emp:   e.emp,
       count: e.count,
     });
