@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<!-- skills: html-builder v6.2.0 · worker-builder v2.0.0 · order-lifecycle v1.3.0 — 03-09-2026 -->
+<!-- skills: html-builder v6.3.0 · worker-builder v2.0.0 · order-lifecycle v1.3.0 — 03-09-2026 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>طباعة أوردرات القاهرة</title>
@@ -444,9 +444,24 @@ body {
 .print-bar-info { font-size: 13px; font-weight: 700; color: var(--accent); }
 
 /* ── §RESULTS — نتيجة الطباعة: ٣ حالات مش اتنين ── */
-.results-panel { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.results-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; font-weight: 800; margin-bottom: 10px; }
-.results-summary { font-family: var(--font-mono); font-weight: 700; color: var(--text-secondary); font-size: 13px; }
+/* ── نتيجة تسجيل الطباعة — Popup: عدّادات دايمًا، والتفاصيل بس لو فيه تحذير أو فشل ── */
+.result-modal { width: 620px; }
+.trk-counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.trk-count  { border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); padding: 14px 8px; text-align: center; }
+.trk-count-n { font-size: 28px; font-weight: 800; line-height: 1.15; color: var(--text-muted); }
+.trk-count-l { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-top: 4px; }
+.trk-count.on.ok   { border-color: var(--green-border); background: var(--green-light); }
+.trk-count.on.ok   .trk-count-n { color: var(--green-dark); }
+.trk-count.on.warn { border-color: var(--amber-border); background: var(--amber-light); }
+.trk-count.on.warn .trk-count-n { color: var(--amber-dark); }
+.trk-count.on.bad  { border-color: var(--red-border);   background: var(--red-light); }
+.trk-count.on.bad  .trk-count-n { color: var(--red-dark); }
+.trk-allok {
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--green-light); border: 1px solid var(--green-border);
+  color: var(--green-dark); font-size: 13.5px; font-weight: 700; text-align: center;
+}
+.trk-details-hdr { margin: 16px 0 8px; font-size: 13px; font-weight: 800; }
 .results-list { display: flex; flex-direction: column; gap: 8px; }
 .result-row { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; line-height: 1.75; }
 .result-row.success { border-color: var(--green-border); background: var(--green-light); }
@@ -846,9 +861,6 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
 
   <div id="printDashboard" style="display:none;">
-
-    <!-- ─── §TOOL::trackResults ─── -->
-    <div id="trackResults"></div>
 
     <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);">
       <div class="kpi-card">
@@ -1273,6 +1285,20 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
 </div>
 
+<!-- ─── نتيجة تسجيل الطباعة (Popup) ─── -->
+<div class="overlay" id="trackResultOverlay" onclick="if(event.target===this)closeTrackResult()">
+  <div class="modal result-modal">
+    <div class="modal-header">
+      <span class="modal-title">🖨️ نتيجة تسجيل الطباعة</span>
+      <button class="modal-close-x" onclick="closeTrackResult()">✕</button>
+    </div>
+    <div id="trackResultBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeTrackResult()">تمام</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── About ─── -->
 <div class="eco-overlay" id="aboutOverlay" onclick="if(event.target===this)closeAbout()">
   <div class="eco-modal">
@@ -1292,10 +1318,10 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <ol>
             <li>الموظف بيسجّل دخول باسمه + PIN (Universal D1 Auth).</li>
             <li>الأداة بتجيب أوردرات <code>Confirmed</code> و<code>Confirmed + Edit</code> (S1) و<code>Confirmed + RETURN</code> و<code>Confirmed + EXCHANGE</code> (S2) المنشأة من <code>2026-04-01</code>.</li>
-            <li>بتفلتر بالـ <code>custom.zone</code> على <code>Cairo+Giza</code> و<code>Show_Room</code> — والعدد المستبعَد بيظهر في مربّع KPI.</li>
+            <li>بتفلتر بالـ <code>custom.zone</code> على <code>Cairo+Giza</code> و<code>Show_Room</code> — والعدد المستبعَد بيرجع في <code>/orders</code> لكنه مش معروض في الواجهة.</li>
             <li>الموظف بيحدد الأوردرات ويضغط طباعة؛ لو فيه أوردر سبق طباعته بتظهر نافذة تأكيد.</li>
             <li>الأداة بتجيب بيانات كل فاتورة، بترسمها، وبتفتح نافذة طباعة المتصفح (Save as PDF).</li>
-            <li>بعدها بتنادي <code>/track</code> لكل أوردر، وبتعرض النتيجة بتلات حالات: تم · تم جزئيًا · فشل.</li>
+            <li>بعدها بتنادي <code>/track</code> لكل أوردر، وبتفتح نافذة النتيجة: العدد بتلات حالات (تم · تم جزئيًا · فشل)، والتفاصيل بتتعرض بس لو فيه تحذير أو فشل.</li>
           </ol>
 
           <h4>الـ Endpoints الرئيسية</h4>
@@ -1327,14 +1353,14 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>§STYLES</code> — التوكنز وكل CSS الأداة</li>
             <li><code>§LOGIN</code> — شاشة الدخول على خطوتين (PIN)</li>
             <li><code>§SHELL</code> — الهيدر الـ sticky + شريط التابات + chip التاب</li>
-            <li><code>§TOOL</code> — تاب الطباعة: KPIs · لوحة النتائج · شريط الطباعة · القسم الموحّد (فلاتر + جدول)</li>
+            <li><code>§TOOL</code> — تاب الطباعة: KPIs · شريط الطباعة · القسم الموحّد (فلاتر + جدول)</li>
             <li><code>§LOG</code> — تاب السجل: KPIs · بانر التقصّ · القسم الموحّد</li>
-            <li><code>§MODALS</code> — الإعدادات · تأكيد إعادة الطباعة · About · Changelog</li>
+            <li><code>§MODALS</code> — الإعدادات · تأكيد إعادة الطباعة · نتيجة تسجيل الطباعة · About · Changelog</li>
             <li><code>§CONFIG</code> — <code>WORKER_URL</code> · <code>LS_SECRET</code> · <code>apiRequest</code>/<code>apiPath</code>/<code>apiGet</code>/<code>apiPost</code></li>
             <li><code>§SHELL-JS</code> — النسخ · حارس الـ Worker · التوست · <code>playBeep</code> · <code>runDiag</code> · Freeze on Scroll</li>
             <li><code>§AUTH-JS</code> — ماكينة حالات الدخول الأربعة</li>
             <li><code>§TABLE-JS</code> — منطق عام للقسمين: multi-select · الفترة · الترتيب · الـ chips</li>
-            <li><code>§TOOL-JS</code> — تحميل الأوردرات · الاختيار · الطباعة · لوحة النتائج</li>
+            <li><code>§TOOL-JS</code> — تحميل الأوردرات · الاختيار · الطباعة · نافذة النتيجة</li>
             <li><code>§LOG-JS</code> — تحميل السجل · KPIs · التصدير</li>
             <li><code>§INVOICE-JS</code> — رسم فواتير S1/S2 + الطباعة عبر iframe</li>
           </ul>
@@ -1357,6 +1383,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>Delivered</code> حالة نهائية — الطباعة بتتسجّل بس الحالة <strong>مش</strong> بتتكتب، والنتيجة بترجع <code>warning</code>.</li>
             <li>عدّاد «مرات الطباعة» بيتبني من سجل D1، وبيقصّ عند سقف الـ Worker — البانر فوق جدول السجل بيقول لو ده حصل.</li>
             <li>مستند الـ <code>iframe</code> بتاع الفاتورة مالوش وصول لـ <code>:root</code>، فألوانه حرفية — استثناء تقني موثّق من Standards #35.</li>
+            <li>نافذة نتيجة الطباعة بتعرض <strong>العدد بس</strong> لما كله ينجح؛ تفاصيل الأوردرات بتتبني بس لو <code>warning</code> أو <code>error</code> — ومع ذلك العدّادات التلاتة بتتعرض دايمًا، فالصفر الأصفر/الأحمر بيفضل ظاهر ومش مستنتَج.</li>
             <li>فلترة الجدولين client-side على البيانات المحمّلة — الأداة بتحمّل السجل كله عشان تبني عدّاد الطباعة، فمفيش pagination من السيرفر.</li>
           </ul>
         </div>
@@ -1377,8 +1404,20 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.1.1</span>
+          <span class="cl-ver">v3.2.0</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">03-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>نتيجة تسجيل الطباعة بقت <strong>نافذة منبثقة</strong> بدل القسم اللي كان فوق الجدول — بتفتح لوحدها بعد ما الطباعة تخلص.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>لما كل الأوردرات تنجح، النافذة بتعرض <strong>العدد بس</strong> بدون تفاصيل. تفاصيل كل أوردر («ما تم فعليًا» + سبب التحذير/الفشل) بتظهر <strong>بس</strong> لو فيه حالة تحذير أو فشل.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>لما التفاصيل تظهر، الأوردرات بتترتّب بالفشل الأول ثم التحذير ثم اللي تم — اللي محتاج تدخّل فوق.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.1.1</span>
           <span class="cl-date">03-09-2026</span>
         </div>
         <div class="cl-list">
@@ -1503,7 +1542,7 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.1.1";
+const TOOL_VERSION = "3.2.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
@@ -2326,9 +2365,9 @@ async function executePrint(selectedOrders) {
       const num = String(inv.name).replace("#","");
       printCountsMap[num] = (printCountsMap[num] || 0) + 1;
     }
-    renderTrackResults(tracked);
     clearSelection();
     hidePrintLoading();
+    renderTrackResults(tracked);   // بعد إخفاء شاشة التحميل — الاتنين على z-index 600
     await loadOrders(true);
     if (logsLoaded) loadLogs();
   } catch (err) {
@@ -2339,40 +2378,61 @@ async function executePrint(selectedOrders) {
 
 // ─── §TOOL-JS::renderTrackResults ───
 // ٣ حالات مش اتنين — والحالة جاية من الـ Worker كما هي، مش مشتقّة من success.
+// الشكل Popup: عدّادات بس لو كله نجح، وتفاصيل كل أوردر لو فيه تحذير أو فشل.
 function renderTrackResults(rows) {
-  const box = document.getElementById("trackResults");
-  if (!rows || !rows.length) { box.innerHTML = ""; return; }
+  const body = document.getElementById("trackResultBody");
+  if (!rows || !rows.length) { closeTrackResult(); return; }
 
   const n  = t => rows.filter(r => (r.status || "error") === t).length;
   const ok = n("success"), warn = n("warning"), bad = n("error");
   if (bad) playBeep("error"); else if (warn) playBeep("warn"); else playBeep("success");
 
+  const counts =
+    '<div class="trk-counts">' +
+      `<div class="trk-count bad ${bad  ? "on" : ""}"><div class="trk-count-n">${bad}</div><div class="trk-count-l">✗ فشل</div></div>` +
+      `<div class="trk-count warn ${warn ? "on" : ""}"><div class="trk-count-n">${warn}</div><div class="trk-count-l">⚠ تحذير</div></div>` +
+      `<div class="trk-count ok ${ok   ? "on" : ""}"><div class="trk-count-n">${ok}</div><div class="trk-count-l">✓ تم</div></div>` +
+    '</div>';
+
+  // التفاصيل بتظهر بس لما يكون فيه تحذير أو فشل — النجاح الكامل عدد بس
+  if (!warn && !bad) {
+    body.innerHTML = counts +
+      `<div class="trk-allok">كل الأوردرات (${ok}) اتسجّلت وحالتها اتحدّثت ✓</div>`;
+    openTrackResult();
+    return;
+  }
+
   const badge = st => st === "success" ? '<span class="result-badge badge-success">✓ تم</span>'
                     : st === "warning" ? '<span class="result-badge badge-warn">⚠ تم جزئيًا</span>'
                                        : '<span class="result-badge badge-danger">✗ فشل</span>';
 
-  box.innerHTML =
-    '<div class="results-panel">' +
-      '<div class="results-head">' +
-        '<span>نتيجة تسجيل الطباعة</span>' +
-        `<span class="results-summary">تم: ${ok} ✓ | تحذير: ${warn} ⚠ | فشل: ${bad} ✗</span>` +
-        '<div style="flex:1"></div>' +
-        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'trackResults\').innerHTML=\'\'">إخفاء</button>' +
-      '</div>' +
-      '<div class="results-list">' +
-      rows.map(r => {
-        const st = r.status || "error";
-        const parts = [
-          `<div>${badge(st)} ${orderLink(r.orderNumber || "", r.orderId)} <span style="color:var(--text-secondary)">[${escHtml(typeLabel(r.type))}]</span></div>`,
-          `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
-        ];
-        (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
-        (r.errors   || []).forEach(e => parts.push(`<div class="result-detail">✗ ${escHtml(e)}</div>`));
-        if (r.logged === false) parts.push('<div class="result-warn">⚠ العملية تمت لكن ما اتسجلتش في السجل</div>');
-        return `<div class="result-row ${st}">${parts.join("")}</div>`;
-      }).join("") +
-      '</div>' +
+  // المشاكل الأول — الموظف يشوف اللي محتاج تدخّل من غير ما يدوّر
+  const rank = { error: 0, warning: 1, success: 2 };
+  const sorted = [...rows].sort((a, b) => (rank[a.status] ?? 0) - (rank[b.status] ?? 0));
+
+  body.innerHTML = counts +
+    '<div class="trk-details-hdr">تفاصيل الأوردرات</div>' +
+    '<div class="results-list">' +
+    sorted.map(r => {
+      const st = r.status || "error";
+      const parts = [
+        `<div>${badge(st)} ${orderLink(r.orderNumber || "", r.orderId)} <span style="color:var(--text-secondary)">[${escHtml(typeLabel(r.type))}]</span></div>`,
+        `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
+      ];
+      (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
+      (r.errors   || []).forEach(e => parts.push(`<div class="result-detail">✗ ${escHtml(e)}</div>`));
+      if (r.logged === false) parts.push('<div class="result-warn">⚠ العملية تمت لكن ما اتسجلتش في السجل</div>');
+      return `<div class="result-row ${st}">${parts.join("")}</div>`;
+    }).join("") +
     '</div>';
+
+  openTrackResult();
+}
+
+function openTrackResult()  { document.getElementById("trackResultOverlay").classList.add("open"); }
+function closeTrackResult() {
+  document.getElementById("trackResultOverlay").classList.remove("open");
+  document.getElementById("trackResultBody").innerHTML = "";
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2768,7 +2828,7 @@ async function doLogout() {
 
   // ── CUSTOMIZE: tool reset ──
   document.getElementById("headerEmployee").textContent = "";
-  document.getElementById("trackResults").innerHTML = "";
+  closeTrackResult();
   allOrders = []; filteredLogs = []; allLogs = [];
   selectedIds.clear();
   logsLoaded = false;
