@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.0.0)
+// EcomModa — Order Printer (v2.1.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 03-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
@@ -24,6 +24,14 @@
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
 //
+// CHANGES (v2.1.0):
+//   - 🟠 R6 — حارس `WORKER_SECRET` الغايب قبل فحص المصادقة. من غيره
+//     `Bearer ${env.WORKER_SECRET}` بيتقيّم للنص الحرفي "Bearer undefined"
+//     لو السيكرت اتنسي أو النسخة اتنشرت بدون Promote — فأي طلب بالرأس ده
+//     كان بيعدّي المصادقة. الرد بقى 500 برسالة صريحة + step:'env'، و
+//     `?action=diag` بقى بيقول مضبوط/غايب + الطول (مش القيمة).
+//     (مراجعة 03-09-2026 · R6)
+//
 // CHANGES (v2.0.0) — كاسر:
 //   - Universal D1 Auth: كل عملية طباعة بقت مربوطة بموظف (كان عمود employee فاضي)
 //   - shopifyGQL بقت النسخة الحارسة (§5A ①) — كانت `return resp.json()` مجردة
@@ -38,7 +46,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.0.0';
+const WORKER_VERSION = '2.1.0';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -1021,6 +1029,13 @@ async function runDiag(request, env) {
   try { assertEnv(env, 'shopify'); push('المتغيرات والـ bindings', true, 'كل المطلوب موجود'); }
   catch (e) { push('المتغيرات والـ bindings', false, e.message); }
 
+  // R6: WORKER_SECRET — الاسم والطول بس، **مش القيمة**. الطول بيكشف المسافة
+  // المخفية اللي بتخلي المقارنة تفشل بلا سبب ظاهر.
+  push('WORKER_SECRET', !!env.WORKER_SECRET,
+    env.WORKER_SECRET
+      ? `مضبوط (${String(env.WORKER_SECRET).length} حرف)`
+      : 'غايب — أي طلب بـ "Bearer undefined" كان هيعدّي المصادقة قبل حارس R6');
+
   // D1
   try {
     const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM logs WHERE tool = ?').bind(TOOL_NAME).first();
@@ -1068,6 +1083,18 @@ export default {
     // ALWAYS first: CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: getCORS(request) });
+    }
+
+    // ── R6: حارس WORKER_SECRET الغايب — **قبل** أي مقارنة ─────────
+    // من غير السطور دي: لو السيكرت اتنسي أو النسخة اتنشرت بدون Promote،
+    // يبقى env.WORKER_SECRET === undefined، والقالب بيتقيّم للنص الحرفي
+    // "Bearer undefined" — فأي طلب بالرأس ده **بيعدّي المصادقة**.
+    // (مراجعة 03-09-2026 · R6 · نفس حارس logistics-control-center-worker)
+    if (!env.WORKER_SECRET) {
+      return json({
+        error: 'WORKER_SECRET غير مضبوط على الـ Worker — أضفه من Settings → Variables ثم اعمل Promote',
+        step:  'env',
+      }, 500, request);
     }
 
     // ALWAYS second: WORKER_SECRET check
