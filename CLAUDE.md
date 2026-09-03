@@ -1,4 +1,8 @@
+<div dir="rtl" style="text-align: right;">
+
 # طابعة الفواتير (`Order-Printer`)
+
+![version](https://img.shields.io/badge/version-v1.0.0-blue)
 
 **بتعمل إيه:** الموظف بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
@@ -126,4 +130,6 @@ git show 0f99338:Indexv-iframe.html
   (`...ecommoda24.workers.dev`) — نص placeholder بس، اتساب عشان الواجهة تفضل
   byte-for-byte.
 
-آخر تحديث: 03-09-2026
+آخر تحديث: 03-09-2026 — 10:39
+
+</div>
