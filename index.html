@@ -1328,7 +1328,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <table>
             <tr><th>المسار / action</th><th>الوصف</th></tr>
             <tr><td><code>POST /orders</code></td><td>الأوردرات الجاهزة — عادي (<code>S1</code>) واستبدال/استرجاع (<code>S2</code>) — و<code>zoneExcluded</code></td></tr>
-            <tr><td><code>POST /invoice</code></td><td>بيانات فاتورة أوردر واحد (+ <code>truncatedLineItems</code>)</td></tr>
+            <tr><td><code>POST /invoice</code></td><td>بيانات فاتورة أوردر واحد (+ <code>truncatedLineItems</code> · <code>truncatedReturns</code> · <code>multiCycle</code> · <code>cycleCount</code>)</td></tr>
             <tr><td><code>POST /track</code></td><td>تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة <code>Ready</code> — بيطلب <code>employee</code></td></tr>
             <tr><td><code>POST /logs</code></td><td>سجل الطباعة (+ <code>cap</code> · <code>total</code> · <code>truncated</code>)</td></tr>
             <tr><td><code>get_employees</code> · <code>check_employee</code> · <code>verify_employee</code> · <code>register_pin</code> · <code>log_logout</code></td><td>Universal D1 Auth</td></tr>
@@ -1542,11 +1542,11 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.2.0";
+const TOOL_VERSION = "3.3.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
-const MIN_WORKER_VERSION = "2.0.0";
+const MIN_WORKER_VERSION = "2.1.0";
 let workerVersion = null;
 
 // مقارنة رقمية — مش نصية. "10" أصغر من "9" لو اتقارنوا كنص.
@@ -2343,7 +2343,19 @@ async function executePrint(selectedOrders) {
         if (d.truncatedLineItems) {
           showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
         }
-        return d.invoice;
+        // R8 — دورات إرجاع/استبدال اتقصّت. نفس فلسفة truncatedLineItems:
+        //      القصّ لازم يبان، مايعدّيش صامت.
+        if (d.truncatedReturns) {
+          showToast(`⚠️ ${d.invoice.name}: دورات الإرجاع/الاستبدال أكتر من اللي الاستعلام بيجيبه — ` +
+                    `ممكن يكون فيه بنود مرتجعة مش ظاهرة في الفاتورة`, "warn", 9000);
+        }
+        // R7 — الفاتورة بتعرض **أحدث دورة** بس. لو الأوردر عنده أكتر من
+        //      دورة، المغلِّف لازم يعرف عشان يراجع بدل ما يفترض إنها الكل.
+        if (d.multiCycle) {
+          showToast(`ℹ️ ${d.invoice.name}: الأوردر ده عنده ${d.cycleCount} دورات إرجاع/استبدال — ` +
+                    `الفاتورة بتعرض **أحدث** دورة بس. راجعها.`, "warn", 9000);
+        }
+        return { ...d.invoice, multiCycle: d.multiCycle, cycleCount: d.cycleCount };
       }))
     );
     showPrintLoading("جاري رسم الفواتير...");
