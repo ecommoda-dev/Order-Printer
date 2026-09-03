@@ -2,11 +2,11 @@
 
 # طابعة الفواتير (`Order-Printer`)
 
-![version](https://img.shields.io/badge/version-v3.1.1-blue)
+![version](https://img.shields.io/badge/version-v3.2.0-blue)
 
 **بتعمل إيه:** الموظف بيسجّل دخول بـ PIN، بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
-**الإصدار:** Worker `v2.0.0` · الواجهة `v3.1.1` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.0.0`
+**الإصدار:** Worker `v2.0.0` · الواجهة `v3.2.0` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.0.0`
 
 ## الروابط
 
@@ -114,6 +114,10 @@ SELECT type, COUNT(*) AS n, MAX(timestamp) AS last_ts FROM logs WHERE tool = 'or
   `warning` والحالة **مش** بتتكتب. ده مقصود (`ecommoda-order-lifecycle` §1.4).
 - **`/track` بيرجّع تلات حالات** — `success` · `warning` · `error`. الأصفر معناه
   الطباعة اتسجّلت بس فيه فعل ما تمّش (الحالة مثلاً). **ممنوع يتحسب نجاح.**
+- **نتيجة الطباعة نافذة منبثقة من v3.2.0** — العدّادات التلاتة بتتعرض دايمًا،
+  لكن **تفاصيل الأوردرات بتتبني بس لو فيه `warning` أو `error`**. النجاح الكامل
+  = عدد بس. لو الرقم الأصفر/الأحمر أكبر من صفر ومفيش تفاصيل تحته، دي مشكلة في
+  `renderTrackResults` مش سلوك مقصود.
 - **الحالة الحالية بتتقرا قبل أي كتابة** — لو القراءة فشلت، الحالة **مش**
   بتتكتب والرد بيرجع `warning`. الاتجاه الآمن مقصود.
 - **`order_id` مختلط في D1** — رقمي للجديد، GID للقديم (فوق).
@@ -145,11 +149,11 @@ git show 0f99338:Indexv-iframe.html
 | المهارة | الإصدار وقت آخر تعديل |
 |---|---|
 | ecommoda-worker-builder | v2.0.0 |
-| ecommoda-html-builder | v6.2.0 |
+| ecommoda-html-builder | v6.3.0 |
 | ecommoda-order-lifecycle | v1.3.0 |
 | ecommoda-constants | v1.4.3 |
 
-آخر مطابقة: 03-09-2026 · `index.js` v2.0.0 · `index.html` v3.1.1
+آخر مطابقة: 03-09-2026 · `index.js` v2.0.0 · `index.html` v3.2.0
 
 ## مسائل مفتوحة
 
@@ -169,6 +173,6 @@ git show 0f99338:Indexv-iframe.html
 - **تضييق `Build watch paths`** على `index.js` + `wrangler.toml` (§13-ب).
 - **`compatibility_date = "2025-01-01"`** — مطابق لقالب المهارة الحالي، فاتساب.
 
-آخر تحديث: 03-09-2026 — 18:30
+آخر تحديث: 03-09-2026 — 21:10
 
 </div>
