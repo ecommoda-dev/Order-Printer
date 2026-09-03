@@ -1,5 +1,8 @@
 // ============================================================
 // Worker: order-printer-worker  (ecommoda-dev — NEW)
+// EcomModa — Order Printer (v1.1.1)
+// skills: worker-builder v1.0.0 · constants v1.0.0 — 03-09-2026
+//
 // Account: 762c353004e8472b20261fba273bfe8d
 // Subdomain: order-printer-worker.ecommoda-dev.workers.dev
 //
