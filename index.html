@@ -8,76 +8,170 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-<!-- iframe + print — no extra library needed -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     §STYLES
+     ══════════════════════════════════════════════════════════════ -->
 <style>
 :root {
   --bg:           #f3f4f6;
   --surface:      #ffffff;
   --surface-2:    #f9fafb;
+  --surface-hover:#f0f4f8;
   --border:       #e5e7eb;
   --border-strong:#d1d5db;
+
   --text-primary:   #111827;
   --text-secondary: #6b7280;
   --text-muted:     #9ca3af;
-  --accent:        #2563eb;
-  --accent-light:  #eff6ff;
-  --accent-dark:   #1d4ed8;
-  --green:         #16a34a;
-  --green-light:   #f0fdf4;
-  --green-border:  #86efac;
-  --red:           #dc2626;
-  --red-light:     #fef2f2;
-  --red-border:    #fca5a5;
-  --amber:         #d97706;
-  --amber-light:   #fffbeb;
-  --amber-border:  #fcd34d;
-  --amber-dark:    #92400e;
+  --text-mid:       #374151;
+
+  --accent:              #2563eb;
+  --accent-light:        #eff6ff;
+  --accent-dark:         #1d4ed8;
+  --accent-border:       #bfdbfe;
+  --accent-hover:        #dbeafe;
+  --accent-hover-border: #93c5fd;
+  --accent-muted:        #93c5fd;
+
+  --green:        #16a34a;
+  --green-light:  #f0fdf4;
+  --green-border: #86efac;
+  --green-dark:   #15803d;
+
+  --red:          #dc2626;
+  --red-light:    #fef2f2;
+  --red-border:   #fca5a5;
+  --red-dark:     #b91c1c;
+
+  --amber:        #d97706;
+  --amber-light:  #fffbeb;
+  --amber-border: #fcd34d;
+  --amber-dark:   #92400e;
+
   --purple:        #7c3aed;
-  --on-accent:     #ffffff;
-  --print-ink:     #000000;
-  --print-paper:   #ffffff;
-  --accent-border: #bfdbfe;
-  --accent-muted:  #93c5fd;
-  --surface-hover: #f3f4f6;
-  --green-dark:    #15803d;
-  --red-dark:      #b91c1c;
+  --purple-light:  #f5f3ff;
+  --purple-border: #c4b5fd;
+  --purple-dark:   #4c1d95;
+
+  --on-accent:    #ffffff;
+  --neutral-dark: #1a1d27;
+
+  /* الحبر والورق — الوحيدان اللي بيوصفوا صفحة مطبوعة مش شاشة */
+  --print-ink:   #000000;
+  --print-paper: #ffffff;
 
   /* خط واحد فقط — IBM Plex Mono أُلغي 19-08-2026. --font-mono متغيّر
      توافقي بنفس قيمة --font-body عشان الكلاسات القديمة تفضل شغّالة. */
   --font-body: 'Noto Sans Arabic', -apple-system, sans-serif;
   --font-mono: 'Noto Sans Arabic', -apple-system, sans-serif;
 
-  --container-max: 1400px;   /* Tier L — جداول كثيفة (٨ أعمدة في تاب الطباعة) */
+  --container-max: 1400px;   /* Tier L — جداول كثيفة في التابين */
 
   --radius:    12px;
   --radius-sm: 8px;
   --shadow:    0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: var(--font-body);
   background: var(--bg); color: var(--text-primary);
-  font-size: 14px; min-height: 100vh;
+  font-size: 14px; min-height: 100vh; direction: rtl;
 }
+.container { max-width: var(--container-max); margin: 0 auto; }
+.main { padding: 0 20px 24px; }
+
+/* ── Sticky header wrap — Freeze on Scroll (tabs-and-modals § 1b) ── */
+.sticky-header-wrap { position: sticky; top: 0; z-index: 300; background: var(--bg); padding-top: 2px; margin: 0 -2px; }
+.sticky-header-wrap.stuck { box-shadow: 0 6px 18px rgba(0,0,0,.10); }
+.sticky-header-wrap.stuck .app-header        { padding: 6px 14px; margin-bottom: 6px; }
+.sticky-header-wrap.stuck .app-icon          { font-size: 16px; }
+.sticky-header-wrap.stuck .app-title-text h1 { font-size: 12.5px; }
+.sticky-header-wrap.stuck .app-title-text span { max-height: 0; opacity: 0; margin-top: 0; }
+.sticky-header-wrap.stuck .hbtn              { padding: 4px 9px; font-size: 11px; }
+
 .app-header {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 0 20px; box-shadow: var(--shadow);
-  display: flex; align-items: stretch; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 12px 18px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  transition: padding .18s ease;
 }
-.header-brand { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
-.header-brand h1 { font-size: 17px; font-weight: 700; }
-.header-subtitle { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
-.header-actions { display: flex; gap: 8px; align-items: center; }
-.tabs { display: flex; align-items: stretch; margin-right: 24px; }
-.tab-btn {
-  padding: 14px 20px; font-family: inherit; font-size: 13px; font-weight: 600;
-  cursor: pointer; border: none; background: transparent;
-  color: var(--text-secondary); border-bottom: 3px solid transparent;
-  transition: all .15s; white-space: nowrap;
+.app-title { display: flex; align-items: center; gap: 10px; }
+.app-icon  { font-size: 24px; transition: font-size .18s ease; }
+.app-title-text h1 { font-size: 17px; font-weight: 800; transition: font-size .18s ease; }
+.app-title-text span {
+  display: block; overflow: hidden; max-height: 16px; margin-top: 2px;
+  font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+  transition: max-height .18s ease, opacity .18s ease, margin-top .18s ease;
 }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-btn:hover:not(.active) { color: var(--text-primary); background: var(--surface-2); }
+.app-header-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hbtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface);
+  font-family: var(--font-body); font-size: 12px; font-weight: 700;
+  color: var(--text-primary); cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.hbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.hbtn.warn  { border-color: var(--amber); color: var(--amber); background: var(--amber-light); }
+.header-employee { font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 0 4px; white-space: nowrap; }
+.header-updated  { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+
+/* ── Main tabs — full width, equal split ── */
+.main-tabs-bar {
+  display: flex; gap: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px; margin-bottom: 14px;
+  box-shadow: var(--shadow); overflow: hidden;
+  transition: max-height .22s ease, opacity .18s ease, padding .18s ease, margin .18s ease, border-width .18s ease;
+}
+.sticky-header-wrap.stuck .main-tabs-bar {
+  max-height: 0 !important; opacity: 0; padding: 0; margin-bottom: 0; border-width: 0;
+}
+.main-tab-btn {
+  flex: 1; padding: 9px 10px;
+  border: 2px solid transparent; background: transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+}
+.main-tab-btn:hover  { background: var(--surface-2); color: var(--text-primary); }
+.main-tab-btn.active {
+  background: var(--accent); color: var(--on-accent);
+  border-color: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,.25);
+}
+.tab-panel        { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Active tab chip (يظهر بس وقت الـ Sticky) ── */
+.active-tab-chip {
+  display: none; align-items: center; gap: 6px; padding: 5px 10px;
+  border: 1.5px solid var(--border-strong); border-radius: 20px;
+  background: var(--surface-2); font-size: 11.5px; font-weight: 700; color: var(--text-primary);
+  cursor: pointer; position: relative; white-space: nowrap; transition: border-color .15s, color .15s;
+}
+.active-tab-chip:hover { border-color: var(--accent); color: var(--accent); }
+.active-tab-chip.open  { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-light); }
+.sticky-header-wrap.stuck .active-tab-chip { display: flex; }
+.chip-arrow { font-size: 9px; color: var(--text-muted); transition: transform .2s; }
+.active-tab-chip.open .chip-arrow { transform: rotate(180deg); }
+.tab-chip-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 310; min-width: 180px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px rgba(0,0,0,.14); display: none; padding: 4px;
+}
+.tab-chip-menu.open { display: block; }
+.tab-chip-item {
+  display: flex; align-items: center; gap: 6px; padding: 8px 10px; font-size: 12.5px; font-weight: 600;
+  border-radius: 6px; cursor: pointer; color: var(--text-secondary); white-space: nowrap;
+}
+.tab-chip-item:hover  { background: var(--surface-2); }
+.tab-chip-item.active { background: var(--accent-light); color: var(--accent-dark); }
+
+/* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--radius-sm);
@@ -87,179 +181,377 @@ body {
 .btn-primary { background: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent-dark); }
 .btn-primary:disabled { background: var(--accent-muted); cursor: not-allowed; }
-.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-strong); }
-.btn-ghost:hover { background: var(--surface-2); }
+.btn-ghost { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-primary); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 .btn-danger { background: var(--red); color: var(--on-accent); }
 .btn-danger:hover { background: var(--red-dark); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
-.main { padding: 20px; }
-.container { max-width: var(--container-max); margin: 0 auto; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-.state-box {
-  background: var(--surface); border-radius: var(--radius);
-  padding: 60px 20px; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  box-shadow: var(--shadow);
+
+/* ── KPI cards ── */
+.kpi-grid { display: grid; gap: 12px; margin-bottom: 16px; }
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow);
 }
-.state-box.error { border: 1px solid var(--red-border); }
-.state-msg { color: var(--text-secondary); }
+.kpi-card.amber  { border-left-color: var(--amber);  }
+.kpi-card.green  { border-left-color: var(--green);  }
+.kpi-card.red    { border-left-color: var(--red);    }
+.kpi-card.purple { border-left-color: var(--purple); }
+.kpi-value { font-size: 24px; font-weight: 800; font-family: var(--font-mono); direction: ltr; }
+.kpi-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; margin-top: 3px; }
+
+/* ── State boxes ── */
+.state-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 50px 20px; text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 14px; box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.state-box.error { border-color: var(--red-border); background: var(--red-light); }
+.state-msg { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
 .spinner {
-  width: 36px; height: 36px;
-  border: 3px solid var(--border); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin .7s linear infinite;
+  width: 34px; height: 34px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.kpi-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
-  margin-bottom: 20px;
+
+/* ══ Unified Section — filters + table together, one card, one divider ══ */
+/* ⚠️ ممنوع overflow:hidden هنا أو على أي أب لقوائم الفلاتر — بيقص الـ .ms-menu */
+.unified-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px;
 }
-.kpi-card {
-  background: var(--surface); border-radius: var(--radius);
-  padding: 16px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
+.section-divider { border-top: 1px solid var(--border); }
+
+.flt-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 16px;
+  background: var(--surface-2); cursor: pointer; user-select: none; transition: background .12s;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
-.kpi-value { font-size: 32px; font-weight: 800; font-family: var(--font-mono); }
-.kpi-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-.kpi-card.accent .kpi-value { color: var(--accent); }
-.kpi-card.green  .kpi-value { color: var(--green); }
-.kpi-card.amber  .kpi-value { color: var(--amber); }
-.kpi-card.red    .kpi-value { color: var(--red); }
-.toolbar {
-  background: var(--surface); border-radius: var(--radius);
-  padding: 12px 16px; margin-bottom: 16px;
-  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-  box-shadow: var(--shadow); border: 1px solid var(--border);
+.flt-header:hover { background: var(--surface-hover); }
+.flt-header-right { display: flex; align-items: center; gap: 10px; }
+.flt-icon { width: 34px; height: 22.5px; color: var(--text-muted); transition: color .2s; flex-shrink: 0; }
+.flt-icon.active { color: var(--accent); }
+.flt-toggle { font-size: 13px; color: var(--text-muted); transition: transform .25s; }
+.flt-toggle.open { transform: rotate(180deg); }
+.flt-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.flt-body.collapsed { display: none; }
+.flt-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.flt-g { display: flex; flex-direction: column; gap: 3px; }
+.flt-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+
+.clear-btn {
+  display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+  white-space: nowrap; height: 34px;
+  border: 1px solid var(--red-border); color: var(--red); background: var(--red-light);
 }
-.toolbar .spacer { flex: 1; }
-.filter-group { display: flex; align-items: center; gap: 6px; }
-.filter-label { font-size: 12px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
-input[type="text"], input[type="date"], select {
-  font-family: inherit; font-size: 13px;
-  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  padding: 7px 10px; color: var(--text-primary); background: var(--surface);
-  outline: none; transition: border-color .15s;
+.clear-btn:hover { background: var(--red); color: var(--on-accent); border-color: var(--red); }
+.clear-btn.inactive { border-color: var(--border); color: var(--text-muted); background: var(--surface-2); cursor: not-allowed; opacity: .6; }
+.clear-btn.inactive:hover { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+
+/* search box — icon left, no overlap */
+.search-wrap { position: relative; max-width: 280px; flex: 1; min-width: 200px; }
+.search-input {
+  width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 8px 12px 8px 34px; font-family: inherit; font-size: 13px; height: 36px;
+  box-sizing: border-box; outline: none; transition: border-color .15s, background .15s; background: var(--surface);
 }
-input:focus, select:focus { border-color: var(--accent); }
-.order-search { font-family: var(--font-mono); direction: ltr; width: 120px; }
-.result-count { font-size: 12px; color: var(--text-muted); }
-.print-bar {
-  background: var(--accent-light); border: 1px solid var(--accent);
-  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
-  display: flex; align-items: center; gap: 12px;
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,.08); }
+.search-input.has-value { border-color: var(--accent); background: var(--accent-light); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-muted); pointer-events: none; }
+
+/* multi-select */
+.ms-wrap { position: relative; }
+.ms-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 170px; height: 34px;
+  padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface);
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-primary); cursor: pointer;
+  transition: all .15s; white-space: nowrap;
 }
-.print-bar-info { font-size: 13px; font-weight: 600; color: var(--accent); }
-.table-card {
-  background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden;
+.ms-btn:hover { border-color: var(--accent); }
+.ms-btn.has-selection { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-light); }
+.ms-btn.open { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,.08); }
+.ms-btn .ms-count {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; color: var(--on-accent);
+  background: var(--accent); border-radius: 20px; padding: 1px 7px; min-width: 18px; text-align: center;
 }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead { background: var(--surface-2); }
-th {
-  padding: 11px 14px; text-align: right;
-  font-size: 11px; font-weight: 700; color: var(--text-secondary);
-  text-transform: uppercase; letter-spacing: .04em;
-  border-bottom: 1px solid var(--border); white-space: nowrap;
+.ms-btn .ms-arrow { font-size: 9px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+.ms-btn.open .ms-arrow { transform: rotate(180deg); }
+.ms-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 200; width: 250px; max-width: 85vw;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px rgba(0,0,0,.14); display: none; flex-direction: column; overflow: hidden;
 }
-th.center, td.center { text-align: center; }
-td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--surface-2); }
-tr.selected td { background: var(--accent-light); }
-.mono { font-family: var(--font-mono); direction: ltr; display: inline-block; }
-.type-badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 700;
+.ms-menu.open { display: flex; }
+.ms-ftr-top {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2);
 }
-.type-s1 { background: var(--accent-light); color: var(--accent); }
-.type-s2 { background: var(--amber-light);  color: var(--amber); }
-.count-badge {
+.ms-ftr-clear { font-size: 11.5px; font-weight: 700; color: var(--red); background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 5px; }
+.ms-ftr-clear:hover { background: var(--red-light); }
+.ms-ftr-count { font-size: 11px; color: var(--text-muted); }
+.ms-modes { display: flex; border-bottom: 1px solid var(--border); }
+.ms-mode-btn {
+  flex: 1; padding: 7px 4px; font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-secondary);
+  background: var(--surface-2); border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all .15s;
+}
+.ms-mode-btn.active { color: var(--accent-dark); background: var(--surface); border-bottom-color: var(--accent); }
+.ms-mode-panel { display: none; }
+.ms-mode-panel.active { display: block; }
+.ms-search-wrap { padding: 8px; border-bottom: 1px solid var(--border); }
+.ms-search { width: 100%; height: 32px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 10px; font-family: inherit; font-size: 12px; outline: none; background: var(--surface-2); }
+.ms-search:focus { border-color: var(--accent); background: var(--surface); }
+.ms-selectall-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); font-size: 12px; font-weight: 700; cursor: pointer; user-select: none;
+}
+.ms-selectall-row:hover { background: var(--surface-hover); }
+.ms-list { max-height: 200px; overflow-y: auto; padding: 4px; }
+.ms-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; user-select: none; transition: background .1s; }
+.ms-item:hover { background: var(--surface-2); }
+.ms-item.checked { background: var(--accent-light); }
+.ms-item input[type=checkbox], .ms-selectall-row input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+.ms-item .ms-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-muted); }
+.ms-range-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ms-range-row { display: flex; gap: 8px; align-items: center; }
+.ms-range-g { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.ms-range-lbl { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+.ms-range-input { width: 100%; height: 32px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 8px; font-family: var(--font-mono); direction: ltr; text-align: center; font-size: 12.5px; outline: none; }
+.ms-range-input:focus { border-color: var(--accent); }
+.ms-range-hint { font-size: 10.5px; color: var(--text-muted); line-height: 1.5; }
+.ms-range-clear { align-self: flex-start; font-size: 11px; font-weight: 700; color: var(--red); background: none; border: none; cursor: pointer; padding: 2px 4px; }
+
+/* chips */
+.ms-chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ms-chips-row:empty { display: none; }
+.chips-label { font-size: 11.5px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+.ms-chip {
+  display: flex; align-items: center; gap: 5px; background: var(--accent-light); color: var(--accent-dark);
+  border: 1px solid var(--accent-border); border-radius: 20px; padding: 3px 6px 3px 10px; font-size: 11.5px; font-weight: 600;
+}
+.ms-chip button { border: none; background: rgba(37,99,235,.15); color: var(--accent-dark); width: 16px; height: 16px; border-radius: 50%; font-size: 11px; cursor: pointer; line-height: 1; }
+.ms-chip button:hover { background: var(--accent); color: var(--on-accent); }
+
+/* date range preset */
+.range-preset-wrap { position: relative; }
+.range-preset-btn {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 6px 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface);
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.range-preset-btn.has-preset { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-light); }
+.range-preset-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 200; width: 170px; background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 0 8px 28px rgba(0,0,0,.14); display: none; padding: 4px;
+}
+.range-preset-menu.open { display: block; }
+.range-preset-clear-row { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.range-preset-clear-row button { font-size: 11.5px; font-weight: 700; color: var(--red); background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 5px; }
+.range-preset-clear-row button:hover { background: var(--red-light); }
+.range-preset-item { display: flex; justify-content: space-between; padding: 7px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; }
+.range-preset-item:hover { background: var(--surface-2); }
+.range-preset-item.active { background: var(--accent-light); color: var(--accent-dark); font-weight: 700; }
+.range-preset-item .pr-check { display: none; color: var(--accent); }
+.range-preset-item.active .pr-check { display: inline; }
+.range-preset-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+.range-date-wrap input[type=date] {
+  width: 150px; height: 34px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 6px 10px; font-family: inherit; font-size: 12px; outline: none; cursor: pointer;
+}
+
+/* ══ Table section ══ */
+.tbl-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px;
+  background: var(--surface-2); cursor: pointer; user-select: none; transition: background .12s; flex-wrap: wrap;
+}
+.tbl-bar:hover { background: var(--surface-hover); }
+.tbl-bar-right, .tbl-bar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.results-wrap { display: flex; align-items: center; gap: 8px; }
+.results-label { font-size: 14px; font-weight: 800; color: var(--text-primary); white-space: nowrap; }
+.results-count {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 26px; height: 26px; border-radius: 13px; padding: 0 6px;
-  font-size: 12px; font-weight: 700; font-family: var(--font-mono);
+  min-width: 44px; height: 34px; padding: 0 10px;
+  font-family: var(--font-mono); font-size: 17px; font-weight: 800;
+  color: var(--purple); background: var(--purple-light);
+  border: 1.5px solid var(--purple-border); border-radius: var(--radius-sm);
 }
-.count-0 { background: var(--green-light); color: var(--green); }
-.count-1 { background: var(--green-light); color: var(--green); }
-.count-2 { background: var(--amber-light); color: var(--amber); }
-.count-3 { background: var(--red-light);   color: var(--red); }
-.table-empty { text-align: center; padding: 50px; color: var(--text-muted); }
-.table-footer { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
-.overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  z-index: 600; display: none; align-items: center; justify-content: center;
+.tbl-toggle { font-size: 13px; color: var(--text-muted); transition: transform .25s; }
+.tbl-toggle.open { transform: rotate(180deg); }
+.act-btn {
+  display: flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; white-space: nowrap; border: none;
 }
-.overlay.open { display: flex; }
-.modal {
+.act-btn.refresh { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-primary); }
+.act-btn.refresh:hover { border-color: var(--accent); color: var(--accent); }
+.act-btn.export { background: var(--green-light); border: 1px solid var(--green-border); color: var(--green); }
+.act-btn.export:hover { background: var(--green); color: var(--on-accent); }
+.act-btn.bulk { background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent-dark); }
+.act-btn.bulk:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover-border); }
+.act-btn.bulk:disabled { opacity: .5; cursor: not-allowed; }
+.act-btn.danger { background: var(--red-light); border: 1px solid var(--red-border); color: var(--red); }
+.act-btn.danger:hover { background: var(--red); color: var(--on-accent); }
+
+.tbl-body-wrap { max-height: 4000px; overflow: hidden; transition: max-height .3s ease; border-radius: 0 0 var(--radius) var(--radius); }
+.tbl-body-wrap.collapsed { max-height: 0; }
+.tbl-scroll { overflow-x: auto; border-radius: 0 0 var(--radius) var(--radius); }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.data-table thead th {
+  text-align: center; background: var(--surface-2); color: var(--text-secondary);
+  font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .3px;
+  padding: 10px 8px; border-bottom: 2px solid var(--border-strong); white-space: nowrap;
+}
+.sortable-th { cursor: pointer; user-select: none; transition: background .12s, color .12s; }
+.sortable-th:hover  { background: var(--accent-light); color: var(--accent-dark); }
+.sortable-th.sorted { background: var(--accent-light); color: var(--accent-dark); }
+.sort-icon { display: inline-block; font-size: 10px; color: var(--accent); font-weight: 900; }
+.sort-icon.active { margin-inline-start: 4px; }
+.data-table tbody td { text-align: center; padding: 10px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.data-table thead th, .data-table tbody td { border-inline-start: 1px solid var(--border); }
+.data-table thead th:first-child, .data-table tbody td:first-child { border-inline-start: none; }
+.data-table tbody tr:hover { background: var(--surface-2); }
+.data-table tbody tr.selected { background: var(--accent-light); }
+.col-num { font-family: var(--font-mono); direction: ltr; white-space: nowrap; }
+.empty-row td { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+/* ── Order number → hyperlink to Shopify (design-system § Order Number Display) ── */
+.order-link { font-family: var(--font-mono); font-weight: 600; color: var(--accent); text-decoration: none; }
+.order-link:hover { text-decoration: underline; }
+.order-num  { font-family: var(--font-mono); font-weight: 600; }
+
+/* ── Status / type badges ── */
+.type-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.type-badge.s1 { background: var(--accent-light); color: var(--accent-dark); border: 1px solid var(--accent-border); }
+.type-badge.s2 { background: var(--purple-light); color: var(--purple-dark); border: 1px solid var(--purple-border); }
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: var(--surface-2); color: var(--text-mid); border: 1px solid var(--border); }
+.status-badge.accent { background: var(--accent-light); color: var(--accent-dark); border-color: var(--accent-border); }
+.status-badge.amber  { background: var(--amber-light);  color: var(--amber-dark);  border-color: var(--amber-border); }
+.status-badge.purple { background: var(--purple-light); color: var(--purple-dark); border-color: var(--purple-border); }
+.count-badge { display: inline-block; min-width: 26px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; font-family: var(--font-mono); }
+.count-0, .count-1 { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--green-border); }
+.count-2 { background: var(--amber-light); color: var(--amber-dark); border: 1px solid var(--amber-border); }
+.count-3 { background: var(--red-light);   color: var(--red-dark);   border: 1px solid var(--red-border); }
+
+/* ── Print bar (اختيار وطباعة) ── */
+.print-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 11px 16px; margin-bottom: 14px;
+}
+.print-bar-info { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+/* ── §RESULTS — نتيجة الطباعة: ٣ حالات مش اتنين ── */
+.results-panel { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.results-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.results-summary { font-family: var(--font-mono); font-weight: 700; color: var(--text-secondary); font-size: 13px; }
+.results-list { display: flex; flex-direction: column; gap: 8px; }
+.result-row { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; line-height: 1.75; }
+.result-row.success { border-color: var(--green-border); background: var(--green-light); }
+.result-row.warning { border-color: var(--amber-border); background: var(--amber-light); }
+.result-row.error   { border-color: var(--red-border);   background: var(--red-light);   }
+.result-badge { display: inline-block; padding: 2px 9px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px; }
+.badge-success { background: var(--green); color: var(--on-accent); }
+.badge-warn    { background: var(--amber); color: var(--on-accent); }
+.badge-danger  { background: var(--red);   color: var(--on-accent); }
+.result-actions { color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.result-detail  { color: var(--red-dark);   font-size: 12px; font-weight: 700; }
+.result-warn    { color: var(--amber-dark); font-size: 12px; font-weight: 700; }
+.export-warn {
+  margin: 0 0 12px; padding: 10px 14px; border-radius: 9px;
+  background: var(--amber-light); border: 1px solid var(--amber);
+  color: var(--amber-dark); font-size: 13px; font-weight: 600; line-height: 1.7;
+}
+
+/* ══ Modal shell — About / Changelog (tabs-and-modals § 2) ══ */
+.eco-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 600;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.eco-overlay.open { display: flex; }
+.eco-modal {
   background: var(--surface); border-radius: var(--radius);
-  padding: 24px; width: 440px; max-width: 95vw;
-  box-shadow: 0 20px 40px rgba(0,0,0,.15);
+  width: 90%; max-width: calc(var(--container-max) * .9); max-height: 85vh;
+  display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.18); overflow: hidden;
 }
+.eco-modal-hdr {
+  display: flex; justify-content: space-between; align-items: center; padding: 14px 18px;
+  border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 700;
+  background: var(--surface); flex-shrink: 0;
+}
+.eco-modal-body { overflow-y: auto; padding: 16px 20px; flex: 1; }
+.modal-close-x {
+  background: var(--red-light); border: 1.5px solid var(--red-border); color: var(--red);
+  font-size: 14px; font-weight: 700; line-height: 1; padding: 4px 11px;
+  border-radius: var(--radius-sm); font-family: inherit; cursor: pointer; transition: all .15s;
+}
+.modal-close-x:hover { background: var(--red); color: var(--on-accent); border-color: var(--red); }
+
+/* About modal content */
+.about-sec { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; overflow: hidden; }
+.about-sec > summary { padding: 11px 14px; font-weight: 700; font-size: 14px; background: var(--surface-2); cursor: pointer; user-select: none; }
+.about-sec-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.75; }
+.about-sec-body h4 { font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+.about-sec-body ol, .about-sec-body ul { padding-inline-start: 20px; display: flex; flex-direction: column; gap: 4px; }
+.about-sec-body code {
+  font-family: var(--font-mono); font-size: 11px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; direction: ltr; display: inline-block;
+}
+.about-sec-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.about-sec-body th, .about-sec-body td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+
+/* Changelog */
+.cl-entry { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
+.cl-head  { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cl-ver   { font-family: var(--font-mono); font-weight: 800; font-size: 13px; }
+.cl-badge { background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
+.cl-date  { font-size: 11.5px; color: var(--text-muted); margin-inline-start: auto; }
+.cl-list  { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; line-height: 1.7; }
+.cl-item  { display: flex; gap: 8px; align-items: flex-start; }
+.cl-tag   { flex-shrink: 0; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; margin-top: 2px; }
+.cl-tag.new    { background: var(--green-light);  color: var(--green-dark);  border: 1px solid var(--green-border); }
+.cl-tag.fix    { background: var(--red-light);    color: var(--red-dark);    border: 1px solid var(--red-border); }
+.cl-tag.change { background: var(--amber-light);  color: var(--amber-dark);  border: 1px solid var(--amber-border); }
+
+/* ── Settings / confirm modal (small, fixed width — modals-patterns) ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 600; display: none; align-items: center; justify-content: center; padding: 20px; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); padding: 24px; width: 460px; max-width: 95vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.18); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .modal-title { font-size: 16px; font-weight: 700; }
-.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-muted); }
 .form-group { margin-bottom: 14px; }
 .form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; }
 .form-input {
-  width: 100%; font-family: var(--font-mono); font-size: 13px;
-  padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  width: 100%; font-family: var(--font-mono); font-size: 13px; padding: 9px 12px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--text-primary); outline: none; direction: ltr;
 }
 .form-input:focus { border-color: var(--accent); }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-.confirm-modal { width: 480px; }
-.confirm-warning-box {
-  background: var(--red-light); border: 1px solid var(--red-border);
-  border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px;
-}
-.confirm-warning-title {
-  font-size: 15px; font-weight: 700; color: var(--red); margin-bottom: 8px;
-  display: flex; align-items: center; gap: 8px;
-}
-.confirm-orders-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.settings-diag { border-top: 1.5px solid var(--border); padding-top: 12px; margin-top: 4px; }
+.settings-diag-result { margin-top: 10px; font-size: 12px; line-height: 1.8; }
+.confirm-warning-box { background: var(--red-light); border: 1px solid var(--red-border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; }
+.confirm-warning-title { font-size: 15px; font-weight: 700; color: var(--red); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.confirm-orders-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; }
 .confirm-order-item {
-  background: var(--surface); border: 1px solid var(--red-border);
-  border-radius: var(--radius-sm); padding: 10px 12px;
-  font-size: 13px; display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--red-border); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: 13px; display: flex; align-items: center; justify-content: space-between;
 }
-.confirm-order-num { font-family: var(--font-mono); font-weight: 700; }
 .confirm-order-meta { color: var(--text-secondary); font-size: 12px; }
 .confirm-question { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 12px; }
+
+/* ── Print loading overlay ── */
 .print-loading-overlay {
-  position: fixed; inset: 0; background: rgba(255,255,255,.95);
-  z-index: 600; display: none; align-items: center; justify-content: center;
-  flex-direction: column; gap: 16px;
+  position: fixed; inset: 0; background: rgba(255,255,255,.95); z-index: 600;
+  display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
 }
 .print-loading-overlay.show { display: flex; }
 .print-loading-msg { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
 input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-@media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media print {
-  .app-header, .main, .overlay, .print-loading-overlay,
-  .login-overlay, .toast-container { display: none !important; }
-  .print-container { display: block !important; }
-  body { background: var(--print-paper); }
-}
-.print-container { display: none; }
-.invoice-page {
-  page-break-after: always;
-  padding: 16px 20px; font-family: Arial, Helvetica, sans-serif;
-  font-size: 14px; color: var(--print-ink); background: var(--print-paper);
-  max-width: 800px; margin: 0 auto;
-}
-.invoice-page:last-child { page-break-after: auto; }
-.count-toggle-group {
-  display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-.count-toggle {
-  padding: 7px 14px; font-family: var(--font-mono); font-size: 13px; font-weight: 700;
-  cursor: pointer; border: none; border-left: 1px solid var(--border-strong);
-  background: var(--surface); color: var(--text-secondary); transition: all .15s;
-}
-.count-toggle:first-child { border-left: none; }
-.count-toggle:hover:not(.active) { background: var(--surface-2); }
-.count-toggle.active { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; } }
 /* ══════════════════════════════════════════════════════════════
    §LOGIN — CSS (ecommoda-html-builder templates/22_login-screen.html)
    ══════════════════════════════════════════════════════════════ */
@@ -409,57 +701,24 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 .toast.warn    { background: var(--amber-light); border-color: var(--amber); color: var(--amber-dark); }
 .toast.info    { background: var(--accent-light);border-color: var(--accent);color: var(--accent-dark);}
 
-/* ── Header extras: worker-stale + logout ─────────────────── */
-.hbtn.warn {
-  border: 1px solid var(--amber); color: var(--amber); background: var(--amber-light);
-  padding: 8px 12px; border-radius: var(--radius-sm);
-  font-family: var(--font-body); font-size: 12px; font-weight: 800; cursor: pointer;
+@media print {
+  .app-header, .main, .overlay, .print-loading-overlay,
+  .login-overlay, .toast-container { display: none !important; }
+  .print-container { display: block !important; }
+  body { background: var(--print-paper); }
 }
-.header-employee {
-  font-size: 12px; font-weight: 700; color: var(--text-secondary);
-  padding: 0 4px; white-space: nowrap;
+.print-container { display: none; }
+.invoice-page {
+  page-break-after: always;
+  padding: 16px 20px; font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px; color: var(--print-ink); background: var(--print-paper);
+  max-width: 800px; margin: 0 auto;
 }
-
-/* ── §RESULTS — نتيجة الطباعة: ٣ حالات مش اتنين ─────────────── */
-.results-panel {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface); padding: 14px 16px; margin-bottom: 18px;
-}
-.results-head {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 14px; font-weight: 800; margin-bottom: 10px;
-}
-.results-summary { font-family: var(--font-mono); font-weight: 700; color: var(--text-secondary); font-size: 13px; }
-.results-list { display: flex; flex-direction: column; gap: 8px; }
-.result-row {
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 9px 12px; font-size: 13px; line-height: 1.75;
-}
-.result-row.success { border-color: var(--green-border); background: var(--green-light); }
-.result-row.warning { border-color: var(--amber-border); background: var(--amber-light); }
-.result-row.error   { border-color: var(--red-border);   background: var(--red-light);   }
-.result-badge {
-  display: inline-block; padding: 2px 9px; border-radius: 6px;
-  font-size: 11px; font-weight: 800; margin-left: 8px;
-}
-.badge-success { background: var(--green); color: var(--on-accent); }
-.badge-warn    { background: var(--amber); color: var(--on-accent); }
-.badge-danger  { background: var(--red);   color: var(--on-accent); }
-.result-actions { color: var(--text-secondary); font-size: 12px; font-weight: 600; }
-.result-detail  { color: var(--red-dark); font-size: 12px; font-weight: 700; }
-.result-warn    { color: var(--amber-dark); font-size: 12px; font-weight: 700; }
-.export-warn {
-  margin: 0 0 12px; padding: 10px 14px; border-radius: 9px;
-  background: var(--amber-light); border: 1px solid var(--amber);
-  color: var(--amber-dark); font-size: 13px; font-weight: 600; line-height: 1.7;
-}
-.settings-diag {
-  border-top: 1.5px solid var(--border); padding-top: 12px; margin-top: 4px;
-}
-.settings-diag-result { margin-top: 10px; font-size: 12px; line-height: 1.8; }
+.invoice-page:last-child { page-break-after: auto; }
 </style>
 </head>
 <body>
+
 
 <!-- ══════════════════════════════════════════════════════════════
      §LOGIN — شاشة الدخول (خطوتان — pin-zone مخفية لحد اختيار الموظف)
@@ -528,206 +787,475 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
 <div class="toast-container" id="toastContainer"></div>
 
+<div class="container">
 
-<header class="app-header">
-  <div style="display:flex; align-items:center; gap:0;">
-    <div class="header-brand">
-      <span>🖨️</span>
-      <div>
+<!-- ══════════════════════════════════════════════════════════════
+     §SHELL — sticky header + main tabs
+     ══════════════════════════════════════════════════════════════ -->
+<div class="sticky-header-wrap" id="stickyWrap">
+
+  <header class="app-header">
+    <div class="app-title">
+      <div class="app-icon">🖨️</div>
+      <div class="app-title-text">
         <h1>طباعة أوردرات القاهرة</h1>
-        <div class="header-subtitle">Order Printer</div>
+        <span>Order Printer</span>
       </div>
     </div>
-    <div class="tabs" style="margin-right:24px;">
-      <button class="tab-btn active" onclick="switchTab('print', this)">🖨️ الطباعة</button>
-      <button class="tab-btn" onclick="switchTab('logs', this)">📋 سجل الطباعة</button>
+
+    <!-- Chip التاب الحالي — ما يظهرش إلا وقت الـ Sticky -->
+    <div class="active-tab-chip" id="activeTabChip" onclick="toggleTabChipMenu(event)">
+      <span id="activeTabChipLabel">🖨️ الطباعة</span><span class="chip-arrow">▾</span>
+      <div class="tab-chip-menu" id="tabChipMenu"></div>
     </div>
+
+    <div class="app-header-btns">
+      <span class="header-updated" id="lastUpdated"></span>
+      <button class="hbtn warn" id="verStaleBtn" style="display:none;" onclick="showWorkerStale()">⚠️ الـ Worker نسخة قديمة</button>
+      <span class="header-employee" id="headerEmployee"></span>
+      <button class="hbtn" onclick="handleRefresh()">🔄 تحديث</button>
+      <button class="hbtn" onclick="openAbout()">ℹ️ عن الأداة</button>
+      <button class="hbtn" id="versionBtn" onclick="openChangelog()">v0.0.0 📋</button>
+      <button class="hbtn" onclick="doLogout()">🚪 خروج</button>
+      <button class="hbtn" onclick="openSettings()">⚙️ الإعدادات</button>
+    </div>
+  </header>
+
+  <div class="main-tabs-bar" id="mainTabsBar">
+    <button class="main-tab-btn active" id="tabPrint" onclick="switchMainTab('print')">🖨️ الطباعة</button>
+    <button class="main-tab-btn"        id="tabLog"   onclick="switchMainTab('log')">📜 سجل الطباعة</button>
   </div>
-  <div class="header-actions">
-    <span id="lastUpdated" style="font-size:12px; color:var(--text-muted);"></span>
-    <button class="hbtn warn" id="verStaleBtn" style="display:none;"
-            onclick="showWorkerStale()">⚠️ الـ Worker نسخة قديمة</button>
-    <span class="header-employee" id="headerEmployee"></span>
-    <button class="btn btn-ghost btn-sm" onclick="handleRefresh()">🔄 تحديث</button>
-    <button class="btn btn-ghost btn-sm" onclick="doLogout()">🚪 خروج</button>
-    <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ إعدادات</button>
-  </div>
-</header>
+
+</div>
 
 <main class="main">
-<div class="container">
-  <div class="tab-panel active" id="tab-print">
-    <div id="printLoadingState" class="state-box" style="display:none;">
-      <div class="spinner"></div>
-      <p class="state-msg">جاري جلب الأوردرات...</p>
-    </div>
-    <div id="printErrorState" class="state-box error" style="display:none;">
-      <div style="font-size:40px;">⚠️</div>
-      <p id="printErrorMsg" class="state-msg">فشل الاتصال</p>
-      <button class="btn btn-ghost" onclick="loadOrders(true)">إعادة المحاولة</button>
-    </div>
-    <div id="printDashboard" style="display:none;">
-      <div id="trackResults"></div>
-      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:20px;">
-        <div class="kpi-card">
-          <div class="kpi-value" id="kpiS1">0</div>
-          <div class="kpi-label">أوردر عادي (S1)</div>
-        </div>
-        <div class="kpi-card amber">
-          <div class="kpi-value" id="kpiS2">0</div>
-          <div class="kpi-label">استبدال/استرجاع (S2)</div>
-        </div>
-      </div>
-      <div class="print-bar" id="printBar" style="display:flex;">
-        <span class="print-bar-info" id="selectedInfo">لم يتم تحديد أي أوردر</span>
-        <div style="flex:1;"></div>
-        <button class="btn btn-ghost btn-sm" id="clearSelBtn" onclick="clearSelection()" style="display:none;">إلغاء التحديد</button>
-        <button class="btn btn-ghost" onclick="printAll()">🖨️ طباعة الكل</button>
-        <button class="btn btn-primary" id="printSelectedBtn" onclick="startPrint()" style="display:none;">🖨️ طباعة المحدد</button>
-      </div>
-      <div class="toolbar">
-        <div class="filter-group">
-          <span class="filter-label">#أوردر</span>
-          <input type="text" class="order-search" id="filterOrder" placeholder="#40000" oninput="applyPrintFilters()">
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">النوع</span>
-          <select id="filterType" onchange="applyPrintFilters()">
-            <option value="all">الكل</option>
-            <option value="S1">أوردر عادي</option>
-            <option value="S2">استبدال/استرجاع</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">مرات الطباعة</span>
-          <div class="count-toggle-group" id="countToggleGroup">
-            <button class="count-toggle active" data-val="0" onclick="toggleCountFilter('0')">0</button>
-            <button class="count-toggle" data-val="1" onclick="toggleCountFilter('1')">1</button>
-            <button class="count-toggle" data-val="2+" onclick="toggleCountFilter('2+')">&gt;1</button>
-          </div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="clearPrintFilters()">مسح</button>
-        <div class="spacer"></div>
-        <span class="result-count" id="printResultCount"></span>
-      </div>
-      <div class="table-card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th class="center" style="width:40px;">
-                  <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)">
-                </th>
-                <th>رقم الأوردر</th>
-                <th>العميل</th>
-                <th>التاريخ</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th class="center">مرات الطباعة</th>
-              </tr>
-            </thead>
-            <tbody id="printTableBody"></tbody>
-          </table>
-          <div class="table-empty" id="printTableEmpty" style="display:none;">لا توجد أوردرات تطابق الفلاتر</div>
-        </div>
-        <div class="table-footer" id="printTableFooter"></div>
-      </div>
-    </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     §TOOL — تاب الطباعة
+     ══════════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="panelPrint">
+
+  <div id="printLoadingState" class="state-box" style="display:none;">
+    <div class="spinner"></div>
+    <p class="state-msg">جاري جلب الأوردرات...</p>
+  </div>
+  <div id="printErrorState" class="state-box error" style="display:none;">
+    <div style="font-size:40px;">⚠️</div>
+    <p id="printErrorMsg" class="state-msg">فشل الاتصال</p>
+    <button class="btn btn-ghost" onclick="loadOrders(true)">إعادة المحاولة</button>
   </div>
 
-  <div class="tab-panel" id="tab-logs">
-    <div id="logsLoadingState" class="state-box" style="display:none;">
-      <div class="spinner"></div>
-      <p class="state-msg">جاري جلب سجل الطباعة...</p>
+  <div id="printDashboard" style="display:none;">
+
+    <!-- ─── §TOOL::trackResults ─── -->
+    <div id="trackResults"></div>
+
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpiS1">0</div>
+        <div class="kpi-label">أوردر عادي (S1)</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-value" id="kpiS2">0</div>
+        <div class="kpi-label">استبدال/استرجاع (S2)</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-value" id="kpiZoneExcluded">0</div>
+        <div class="kpi-label">مستبعَد بفلتر الـ zone</div>
+      </div>
     </div>
-    <div id="logsErrorState" class="state-box error" style="display:none;">
-      <div style="font-size:40px;">⚠️</div>
-      <p id="logsErrorMsg" class="state-msg">فشل الاتصال</p>
-      <button class="btn btn-ghost" onclick="loadLogs()">إعادة المحاولة</button>
+
+    <!-- ─── §TOOL::printBar ─── -->
+    <div class="print-bar">
+      <span class="print-bar-info" id="selectedInfo">لم يتم تحديد أي أوردر</span>
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost btn-sm" id="clearSelBtn" onclick="clearSelection()" style="display:none;">إلغاء التحديد</button>
+      <button class="btn btn-ghost" onclick="printAll()">🖨️ طباعة الكل</button>
+      <button class="btn btn-primary" id="printSelectedBtn" onclick="startPrint()" style="display:none;">🖨️ طباعة المحدد</button>
     </div>
-    <div id="logsDashboard" style="display:none;">
-      <div id="logExportWarn" class="export-warn" style="display:none;"></div>
-      <div class="kpi-grid" style="margin-bottom:20px;">
-        <div class="kpi-card accent">
-          <div class="kpi-value" id="logKpiTotal">0</div>
-          <div class="kpi-label">إجمالي عمليات الطباعة</div>
+
+    <!-- ─── §TOOL::unifiedSection (فلاتر + جدول — كارت واحد) ─── -->
+    <div class="unified-section">
+
+      <div class="flt-header" onclick="toggleFilters('print')">
+        <div class="flt-header-right">
+          <span class="flt-toggle open" id="fltToggleIcon-print">▲</span>
+          <svg class="flt-icon" id="fltIcon-print" viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="2 3 13 3 8.3 10.2 8.3 19 6.7 19 6.7 10.2 2 3"></polygon>
+            <line x1="18" y1="5" x2="33" y2="5"></line>
+            <line x1="18" y1="11" x2="29" y2="11"></line>
+            <line x1="18" y1="17" x2="25" y2="17"></line>
+          </svg>
         </div>
-        <div class="kpi-card green">
-          <div class="kpi-value" id="logKpiToday">0</div>
-          <div class="kpi-label">اليوم</div>
+        <button class="clear-btn inactive" id="clearAllBtn-print" onclick="event.stopPropagation(); clearAllFilters('print');">✕ مسح كل الفلاتر</button>
+      </div>
+
+      <div class="flt-body" id="fltBody-print">
+
+        <!-- صف 1: فلاتر الاختيار المتعدد -->
+        <div class="flt-row">
+          <div class="flt-g">
+            <span class="flt-label">النوع</span>
+            <div class="ms-wrap" id="msWrap-pType">
+              <button class="ms-btn" id="msBtn-pType" onclick="msToggle('pType')"><span id="msBtnLabel-pType">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-pType">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pType')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pType"></span></div>
+                <div class="ms-selectall-row" onclick="msToggleSelectAll('pType')">
+                  <input type="checkbox" id="msSelectAll-pType" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pType', this.checked)">
+                  <span id="msSelectAllLabel-pType">تحديد الكل</span>
+                </div>
+                <div class="ms-list" id="msList-pType"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flt-g">
+            <span class="flt-label">الحالة</span>
+            <div class="ms-wrap" id="msWrap-pStatus">
+              <button class="ms-btn" id="msBtn-pStatus" onclick="msToggle('pStatus')"><span id="msBtnLabel-pStatus">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-pStatus">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pStatus')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pStatus"></span></div>
+                <div class="ms-selectall-row" onclick="msToggleSelectAll('pStatus')">
+                  <input type="checkbox" id="msSelectAll-pStatus" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pStatus', this.checked)">
+                  <span id="msSelectAllLabel-pStatus">تحديد الكل</span>
+                </div>
+                <div class="ms-list" id="msList-pStatus"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flt-g">
+            <span class="flt-label">مرات الطباعة</span>
+            <div class="ms-wrap" id="msWrap-pCount">
+              <button class="ms-btn" id="msBtn-pCount" onclick="msToggle('pCount')"><span id="msBtnLabel-pCount">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-pCount">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pCount')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pCount"></span></div>
+                <div class="ms-modes">
+                  <button class="ms-mode-btn active" id="msModeBtn-pCount-list" onclick="msSwitchMode('pCount','list')">☰ قائمة قيم</button>
+                  <button class="ms-mode-btn" id="msModeBtn-pCount-range" onclick="msSwitchMode('pCount','range')">↔ نطاق من-إلى</button>
+                </div>
+                <div class="ms-mode-panel active" id="msPanel-pCount-list">
+                  <div class="ms-selectall-row" onclick="msToggleSelectAll('pCount')">
+                    <input type="checkbox" id="msSelectAll-pCount" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pCount', this.checked)">
+                    <span id="msSelectAllLabel-pCount">تحديد الكل</span>
+                  </div>
+                  <div class="ms-list" id="msList-pCount"></div>
+                </div>
+                <div class="ms-mode-panel" id="msPanel-pCount-range">
+                  <div class="ms-range-body">
+                    <div class="ms-range-row">
+                      <div class="ms-range-g"><span class="ms-range-lbl">من</span><input type="number" class="ms-range-input" id="msRangeFrom-pCount" oninput="msRangeChanged('pCount')" placeholder="0"></div>
+                      <div class="ms-range-g"><span class="ms-range-lbl">إلى</span><input type="number" class="ms-range-input" id="msRangeTo-pCount" oninput="msRangeChanged('pCount')" placeholder="∞"></div>
+                    </div>
+                    <div class="ms-range-hint">النطاق يُلغي أي قيم مختارة من القائمة تلقائيًا (واحد بس شغال في نفس الوقت).</div>
+                    <button class="ms-range-clear" onclick="msRangeClear('pCount')">✕ مسح النطاق</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flt-g">
+            <span class="flt-label">الإجمالي</span>
+            <div class="ms-wrap" id="msWrap-pTotal">
+              <button class="ms-btn" id="msBtn-pTotal" onclick="msToggle('pTotal')"><span id="msBtnLabel-pTotal">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-pTotal">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pTotal')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pTotal"></span></div>
+                <div class="ms-modes">
+                  <button class="ms-mode-btn active" id="msModeBtn-pTotal-list" onclick="msSwitchMode('pTotal','list')">☰ قائمة قيم</button>
+                  <button class="ms-mode-btn" id="msModeBtn-pTotal-range" onclick="msSwitchMode('pTotal','range')">↔ نطاق من-إلى</button>
+                </div>
+                <div class="ms-mode-panel active" id="msPanel-pTotal-list">
+                  <div class="ms-search-wrap"><input type="text" class="ms-search" id="msSearch-pTotal" oninput="msFilterList('pTotal', this.value)" placeholder="بحث..."></div>
+                  <div class="ms-selectall-row" onclick="msToggleSelectAll('pTotal')">
+                    <input type="checkbox" id="msSelectAll-pTotal" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pTotal', this.checked)">
+                    <span id="msSelectAllLabel-pTotal">تحديد الكل</span>
+                  </div>
+                  <div class="ms-list" id="msList-pTotal"></div>
+                </div>
+                <div class="ms-mode-panel" id="msPanel-pTotal-range">
+                  <div class="ms-range-body">
+                    <div class="ms-range-row">
+                      <div class="ms-range-g"><span class="ms-range-lbl">من</span><input type="number" class="ms-range-input" id="msRangeFrom-pTotal" oninput="msRangeChanged('pTotal')" placeholder="0"></div>
+                      <div class="ms-range-g"><span class="ms-range-lbl">إلى</span><input type="number" class="ms-range-input" id="msRangeTo-pTotal" oninput="msRangeChanged('pTotal')" placeholder="∞"></div>
+                    </div>
+                    <div class="ms-range-hint">النطاق يُلغي أي قيم مختارة من القائمة تلقائيًا (واحد بس شغال في نفس الوقت).</div>
+                    <button class="ms-range-clear" onclick="msRangeClear('pTotal')">✕ مسح النطاق</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-value" id="logKpiS1">0</div>
-          <div class="kpi-label">أوردر عادي (S1)</div>
+
+        <!-- صف 2: بحث ← فترة سريعة ← من ← إلى -->
+        <div class="flt-row">
+          <div class="flt-g" style="min-width:240px;">
+            <span class="flt-label">بحث برقم الأوردر أو العميل</span>
+            <div class="search-wrap">
+              <input type="text" class="search-input" id="searchInput-print" oninput="onSearchInput('print', this)">
+              <span class="search-icon">🔍</span>
+            </div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">فترة سريعة</span>
+            <div class="range-preset-wrap" id="rangePresetWrap-print">
+              <button class="range-preset-btn" id="rangePresetBtn-print" onclick="toggleRangePresetMenu(event,'print')">
+                <span id="rangePresetLabel-print">⚡ اختار فترة</span><span>▾</span>
+              </button>
+              <div class="range-preset-menu" id="rangePresetMenu-print">
+                <div class="range-preset-clear-row"><button onclick="clearRangePreset('print')">✕ مسح الاختيار</button></div>
+                <div class="range-preset-item" data-preset="today"     onclick="applyRangePreset('print','today')"><span>اليوم</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-item" data-preset="yesterday" onclick="applyRangePreset('print','yesterday')"><span>أمس</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-sep"></div>
+                <div class="range-preset-item" data-preset="last7"  onclick="applyRangePreset('print','last7')"><span>آخر 7 أيام</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-item" data-preset="last30" onclick="applyRangePreset('print','last30')"><span>آخر 30 يوم</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-sep"></div>
+                <div class="range-preset-item" data-preset="thisMonth" onclick="applyRangePreset('print','thisMonth')"><span>الشهر الحالي</span><span class="pr-check">✓</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">من تاريخ</span>
+            <div class="range-date-wrap"><input type="date" id="rangeDateFrom-print" onclick="this.showPicker&&this.showPicker();" onchange="onDateChanged('print')"></div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">إلى تاريخ</span>
+            <div class="range-date-wrap"><input type="date" id="rangeDateTo-print" onclick="this.showPicker&&this.showPicker();" onchange="onDateChanged('print')"></div>
+          </div>
         </div>
-        <div class="kpi-card amber">
-          <div class="kpi-value" id="logKpiS2">0</div>
-          <div class="kpi-label">استبدال/استرجاع (S2)</div>
+
+        <div class="ms-chips-row" id="chipsRow-pType"></div>
+        <div class="ms-chips-row" id="chipsRow-pStatus"></div>
+        <div class="ms-chips-row" id="chipsRow-pCount"></div>
+        <div class="ms-chips-row" id="chipsRow-pTotal"></div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="tbl-bar" onclick="toggleTable('print')">
+        <div class="tbl-bar-right">
+          <span class="tbl-toggle open" id="tblToggleIcon-print">▲</span>
+          <div class="results-wrap">
+            <span class="results-label">النتائج:</span>
+            <span class="results-count" id="filteredCount-print">—</span>
+          </div>
         </div>
-        <div class="kpi-card red">
-          <div class="kpi-value" id="logKpiDup">0</div>
-          <div class="kpi-label">طُبع أكثر من مرة</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-value" id="logKpiUniq">0</div>
-          <div class="kpi-label">أوردرات فريدة</div>
+        <div class="tbl-bar-left">
+          <button class="act-btn refresh" onclick="event.stopPropagation(); loadOrders(true);">↺ تحديث</button>
+          <button class="act-btn bulk" id="selectAllVisibleBtn" onclick="event.stopPropagation(); selectAllVisible();">☑ تحديد كل النتائج</button>
         </div>
       </div>
-      <div class="toolbar">
-        <div class="filter-group">
-          <span class="filter-label">#أوردر</span>
-          <input type="text" class="order-search" id="logFilterOrder" placeholder="#40000" oninput="applyLogFilters()">
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">النوع</span>
-          <select id="logFilterType" onchange="applyLogFilters()">
-            <option value="all">الكل</option>
-            <option value="S1">أوردر عادي</option>
-            <option value="S2">استبدال/استرجاع</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">مرات الطباعة</span>
-          <select id="logFilterCount" onchange="applyLogFilters()">
-            <option value="all">الكل</option>
-            <option value="1">مرة واحدة</option>
-            <option value="2+">أكثر من مرة</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">من</span>
-          <input type="date" id="logFilterFrom" onchange="applyLogFilters()">
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">إلى</span>
-          <input type="date" id="logFilterTo" onchange="applyLogFilters()">
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="clearLogFilters()">مسح</button>
-        <div class="spacer"></div>
-        <button class="btn btn-ghost btn-sm" onclick="exportLogsXLSX()">📥 تصدير</button>
-        <span class="result-count" id="logResultCount"></span>
-      </div>
-      <div class="table-card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>رقم الأوردر</th>
-                <th>نوع الفاتورة</th>
-                <th>التاريخ والوقت</th>
-                <th class="center">عدد مرات الطباعة</th>
-              </tr>
-            </thead>
-            <tbody id="logsTableBody"></tbody>
+
+      <div class="tbl-body-wrap" id="tblBodyWrap-print">
+        <div class="tbl-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:44px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"></th>
+              <th class="sortable-th" data-sort-key="name"     onclick="toggleSort('print','name')">رقم الأوردر<span class="sort-icon" data-sort-key="name"></span></th>
+              <th class="sortable-th" data-sort-key="date"     onclick="toggleSort('print','date')">التاريخ<span class="sort-icon" data-sort-key="date"></span></th>
+              <th class="sortable-th" data-sort-key="time"     onclick="toggleSort('print','time')">الوقت<span class="sort-icon" data-sort-key="time"></span></th>
+              <th class="sortable-th" data-sort-key="customer" onclick="toggleSort('print','customer')">العميل<span class="sort-icon" data-sort-key="customer"></span></th>
+              <th class="sortable-th" data-sort-key="type"     onclick="toggleSort('print','type')">النوع<span class="sort-icon" data-sort-key="type"></span></th>
+              <th class="sortable-th" data-sort-key="status"   onclick="toggleSort('print','status')">الحالة<span class="sort-icon" data-sort-key="status"></span></th>
+              <th class="sortable-th" data-sort-key="total"    onclick="toggleSort('print','total')">الإجمالي<span class="sort-icon" data-sort-key="total"></span></th>
+              <th class="sortable-th" data-sort-key="count"    onclick="toggleSort('print','count')">مرات الطباعة<span class="sort-icon" data-sort-key="count"></span></th>
+            </tr></thead>
+            <tbody id="printTableBody"></tbody>
           </table>
-          <div class="table-empty" id="logsTableEmpty" style="display:none;">لا توجد نتائج</div>
         </div>
-        <div class="table-footer" id="logsTableFooter"></div>
       </div>
+
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     §LOG — تاب سجل الطباعة
+     ══════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panelLog">
+
+  <div id="logsLoadingState" class="state-box" style="display:none;">
+    <div class="spinner"></div>
+    <p class="state-msg">جاري تحميل السجل...</p>
+  </div>
+  <div id="logsErrorState" class="state-box error" style="display:none;">
+    <div style="font-size:40px;">⚠️</div>
+    <p id="logsErrorMsg" class="state-msg">فشل الاتصال</p>
+    <button class="btn btn-ghost" onclick="loadLogs()">إعادة المحاولة</button>
+  </div>
+
+  <div id="logsDashboard" style="display:none;">
+
+    <div id="logExportWarn" class="export-warn" style="display:none;"></div>
+
+    <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);">
+      <div class="kpi-card">        <div class="kpi-value" id="logKpiTotal">0</div><div class="kpi-label">إجمالي الطباعات</div></div>
+      <div class="kpi-card green">  <div class="kpi-value" id="logKpiToday">0</div><div class="kpi-label">النهارده</div></div>
+      <div class="kpi-card">        <div class="kpi-value" id="logKpiS1">0</div>   <div class="kpi-label">S1</div></div>
+      <div class="kpi-card amber">  <div class="kpi-value" id="logKpiS2">0</div>   <div class="kpi-label">S2</div></div>
+      <div class="kpi-card red">    <div class="kpi-value" id="logKpiDup">0</div>  <div class="kpi-label">أوردرات اتطبعت أكتر من مرة</div></div>
+      <div class="kpi-card purple"> <div class="kpi-value" id="logKpiUniq">0</div> <div class="kpi-label">أوردرات فريدة</div></div>
+    </div>
+
+    <div class="unified-section">
+
+      <div class="flt-header" onclick="toggleFilters('log')">
+        <div class="flt-header-right">
+          <span class="flt-toggle open" id="fltToggleIcon-log">▲</span>
+          <svg class="flt-icon" id="fltIcon-log" viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="2 3 13 3 8.3 10.2 8.3 19 6.7 19 6.7 10.2 2 3"></polygon>
+            <line x1="18" y1="5" x2="33" y2="5"></line>
+            <line x1="18" y1="11" x2="29" y2="11"></line>
+            <line x1="18" y1="17" x2="25" y2="17"></line>
+          </svg>
+        </div>
+        <button class="clear-btn inactive" id="clearAllBtn-log" onclick="event.stopPropagation(); clearAllFilters('log');">✕ مسح كل الفلاتر</button>
+      </div>
+
+      <div class="flt-body" id="fltBody-log">
+
+        <div class="flt-row">
+          <div class="flt-g">
+            <span class="flt-label">النوع</span>
+            <div class="ms-wrap" id="msWrap-lType">
+              <button class="ms-btn" id="msBtn-lType" onclick="msToggle('lType')"><span id="msBtnLabel-lType">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-lType">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('lType')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-lType"></span></div>
+                <div class="ms-selectall-row" onclick="msToggleSelectAll('lType')">
+                  <input type="checkbox" id="msSelectAll-lType" onclick="event.stopPropagation()" onchange="msToggleSelectAll('lType', this.checked)">
+                  <span id="msSelectAllLabel-lType">تحديد الكل</span>
+                </div>
+                <div class="ms-list" id="msList-lType"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flt-g">
+            <span class="flt-label">مرات الطباعة</span>
+            <div class="ms-wrap" id="msWrap-lCount">
+              <button class="ms-btn" id="msBtn-lCount" onclick="msToggle('lCount')"><span id="msBtnLabel-lCount">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-lCount">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('lCount')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-lCount"></span></div>
+                <div class="ms-modes">
+                  <button class="ms-mode-btn active" id="msModeBtn-lCount-list" onclick="msSwitchMode('lCount','list')">☰ قائمة قيم</button>
+                  <button class="ms-mode-btn" id="msModeBtn-lCount-range" onclick="msSwitchMode('lCount','range')">↔ نطاق من-إلى</button>
+                </div>
+                <div class="ms-mode-panel active" id="msPanel-lCount-list">
+                  <div class="ms-selectall-row" onclick="msToggleSelectAll('lCount')">
+                    <input type="checkbox" id="msSelectAll-lCount" onclick="event.stopPropagation()" onchange="msToggleSelectAll('lCount', this.checked)">
+                    <span id="msSelectAllLabel-lCount">تحديد الكل</span>
+                  </div>
+                  <div class="ms-list" id="msList-lCount"></div>
+                </div>
+                <div class="ms-mode-panel" id="msPanel-lCount-range">
+                  <div class="ms-range-body">
+                    <div class="ms-range-row">
+                      <div class="ms-range-g"><span class="ms-range-lbl">من</span><input type="number" class="ms-range-input" id="msRangeFrom-lCount" oninput="msRangeChanged('lCount')" placeholder="0"></div>
+                      <div class="ms-range-g"><span class="ms-range-lbl">إلى</span><input type="number" class="ms-range-input" id="msRangeTo-lCount" oninput="msRangeChanged('lCount')" placeholder="∞"></div>
+                    </div>
+                    <div class="ms-range-hint">النطاق يُلغي أي قيم مختارة من القائمة تلقائيًا (واحد بس شغال في نفس الوقت).</div>
+                    <button class="ms-range-clear" onclick="msRangeClear('lCount')">✕ مسح النطاق</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flt-row">
+          <div class="flt-g" style="min-width:240px;">
+            <span class="flt-label">بحث برقم الأوردر</span>
+            <div class="search-wrap">
+              <input type="text" class="search-input" id="searchInput-log" oninput="onSearchInput('log', this)">
+              <span class="search-icon">🔍</span>
+            </div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">فترة سريعة</span>
+            <div class="range-preset-wrap" id="rangePresetWrap-log">
+              <button class="range-preset-btn" id="rangePresetBtn-log" onclick="toggleRangePresetMenu(event,'log')">
+                <span id="rangePresetLabel-log">⚡ اختار فترة</span><span>▾</span>
+              </button>
+              <div class="range-preset-menu" id="rangePresetMenu-log">
+                <div class="range-preset-clear-row"><button onclick="clearRangePreset('log')">✕ مسح الاختيار</button></div>
+                <div class="range-preset-item" data-preset="today"     onclick="applyRangePreset('log','today')"><span>اليوم</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-item" data-preset="yesterday" onclick="applyRangePreset('log','yesterday')"><span>أمس</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-sep"></div>
+                <div class="range-preset-item" data-preset="last7"  onclick="applyRangePreset('log','last7')"><span>آخر 7 أيام</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-item" data-preset="last30" onclick="applyRangePreset('log','last30')"><span>آخر 30 يوم</span><span class="pr-check">✓</span></div>
+                <div class="range-preset-sep"></div>
+                <div class="range-preset-item" data-preset="thisMonth" onclick="applyRangePreset('log','thisMonth')"><span>الشهر الحالي</span><span class="pr-check">✓</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">من تاريخ</span>
+            <div class="range-date-wrap"><input type="date" id="rangeDateFrom-log" onclick="this.showPicker&&this.showPicker();" onchange="onDateChanged('log')"></div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">إلى تاريخ</span>
+            <div class="range-date-wrap"><input type="date" id="rangeDateTo-log" onclick="this.showPicker&&this.showPicker();" onchange="onDateChanged('log')"></div>
+          </div>
+          <div class="flt-g">
+            <span class="flt-label">الموظف</span>
+            <div class="ms-wrap" id="msWrap-lEmp">
+              <button class="ms-btn" id="msBtn-lEmp" onclick="msToggle('lEmp')"><span id="msBtnLabel-lEmp">كل الموظفين</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-lEmp">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('lEmp')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-lEmp"></span></div>
+                <div class="ms-selectall-row" onclick="msToggleSelectAll('lEmp')">
+                  <input type="checkbox" id="msSelectAll-lEmp" onclick="event.stopPropagation()" onchange="msToggleSelectAll('lEmp', this.checked)">
+                  <span id="msSelectAllLabel-lEmp">تحديد الكل</span>
+                </div>
+                <div class="ms-list" id="msList-lEmp"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-chips-row" id="chipsRow-lType"></div>
+        <div class="ms-chips-row" id="chipsRow-lCount"></div>
+        <div class="ms-chips-row" id="chipsRow-lEmp"></div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="tbl-bar" onclick="toggleTable('log')">
+        <div class="tbl-bar-right">
+          <span class="tbl-toggle open" id="tblToggleIcon-log">▲</span>
+          <div class="results-wrap">
+            <span class="results-label">النتائج:</span>
+            <span class="results-count" id="filteredCount-log">—</span>
+          </div>
+        </div>
+        <div class="tbl-bar-left">
+          <button class="act-btn refresh" onclick="event.stopPropagation(); loadLogs();">↺ تحديث</button>
+          <button class="act-btn export"  onclick="event.stopPropagation(); exportLogsXLSX();">⬇ تصدير XLSX</button>
+        </div>
+      </div>
+
+      <div class="tbl-body-wrap" id="tblBodyWrap-log">
+        <div class="tbl-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th class="sortable-th" data-sort-key="date"  onclick="toggleSort('log','date')">التاريخ<span class="sort-icon" data-sort-key="date"></span></th>
+              <th class="sortable-th" data-sort-key="time"  onclick="toggleSort('log','time')">الوقت<span class="sort-icon" data-sort-key="time"></span></th>
+              <th class="sortable-th" data-sort-key="name"  onclick="toggleSort('log','name')">رقم الأوردر<span class="sort-icon" data-sort-key="name"></span></th>
+              <th class="sortable-th" data-sort-key="type"  onclick="toggleSort('log','type')">نوع الفاتورة<span class="sort-icon" data-sort-key="type"></span></th>
+              <th class="sortable-th" data-sort-key="emp"   onclick="toggleSort('log','emp')">الموظف<span class="sort-icon" data-sort-key="emp"></span></th>
+              <th class="sortable-th" data-sort-key="count" onclick="toggleSort('log','count')">مرات الطباعة<span class="sort-icon" data-sort-key="count"></span></th>
+            </tr></thead>
+            <tbody id="logsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </main>
+</div>
 
 <div class="print-container" id="printContainer"></div>
 
@@ -736,11 +1264,14 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   <p class="print-loading-msg" id="printLoadingMsg">جاري تحضير الفواتير...</p>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════
+     §MODALS
+     ══════════════════════════════════════════════════════════════ -->
 <div class="overlay" id="settingsOverlay">
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">⚙️ إعدادات الاتصال</span>
-      <button class="modal-close" onclick="closeSettings()">✕</button>
+      <button class="modal-close-x" onclick="closeSettings()">✕</button>
     </div>
     <div class="form-group">
       <label class="form-label">WORKER SECRET</label>
@@ -753,16 +1284,16 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeSettings()">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveSettings()">حفظ وتحميل</button>
+      <button class="btn btn-primary" onclick="saveSettings()">حفظ</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="confirmOverlay">
-  <div class="modal confirm-modal">
+  <div class="modal">
     <div class="modal-header">
       <span class="modal-title">⚠️ تحذير — طباعة مكررة</span>
-      <button class="modal-close" onclick="closeConfirm()">✕</button>
+      <button class="modal-close-x" onclick="closeConfirm()">✕</button>
     </div>
     <div class="confirm-warning-box">
       <div class="confirm-warning-title">
@@ -775,6 +1306,146 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     <div class="modal-actions" style="margin-top:20px;">
       <button class="btn btn-ghost" onclick="closeConfirm()">إلغاء</button>
       <button class="btn btn-danger" id="confirmPrintBtn">🖨️ نعم أريد الطباعة مرة أخرى</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── About ─── -->
+<div class="eco-overlay" id="aboutOverlay" onclick="if(event.target===this)closeAbout()">
+  <div class="eco-modal">
+    <div class="eco-modal-hdr">
+      <span>ℹ️ About — طباعة أوردرات القاهرة (Order Printer)</span>
+      <button class="modal-close-x" onclick="closeAbout()">✕</button>
+    </div>
+    <div class="eco-modal-body">
+
+      <details class="about-sec" open>
+        <summary>📋 وصف الأداة</summary>
+        <div class="about-sec-body">
+          <p><strong>الهدف:</strong> الموظف بيختار الأوردرات الجاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ <code>Ready</code> على شوبيفاي.</p>
+          <p><strong>المستخدمون المستهدفون:</strong> موظفو المخزن.</p>
+
+          <h4>كيف تعمل — Workflow</h4>
+          <ol>
+            <li>الموظف بيسجّل دخول باسمه + PIN (Universal D1 Auth).</li>
+            <li>الأداة بتجيب أوردرات <code>Confirmed</code> و<code>Confirmed + Edit</code> (S1) و<code>Confirmed + RETURN</code> و<code>Confirmed + EXCHANGE</code> (S2) المنشأة من <code>2026-04-01</code>.</li>
+            <li>بتفلتر بالـ <code>custom.zone</code> على <code>Cairo+Giza</code> و<code>Show_Room</code> — والعدد المستبعَد بيظهر في مربّع KPI.</li>
+            <li>الموظف بيحدد الأوردرات ويضغط طباعة؛ لو فيه أوردر سبق طباعته بتظهر نافذة تأكيد.</li>
+            <li>الأداة بتجيب بيانات كل فاتورة، بترسمها، وبتفتح نافذة طباعة المتصفح (Save as PDF).</li>
+            <li>بعدها بتنادي <code>/track</code> لكل أوردر، وبتعرض النتيجة بتلات حالات: تم · تم جزئيًا · فشل.</li>
+          </ol>
+
+          <h4>الـ Endpoints الرئيسية</h4>
+          <table>
+            <tr><th>المسار / action</th><th>الوصف</th></tr>
+            <tr><td><code>POST /orders</code></td><td>أوردرات S1 + S2 الجاهزة (+ <code>zoneExcluded</code>)</td></tr>
+            <tr><td><code>POST /invoice</code></td><td>بيانات فاتورة أوردر واحد (+ <code>truncatedLineItems</code>)</td></tr>
+            <tr><td><code>POST /track</code></td><td>تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة <code>Ready</code> — بيطلب <code>employee</code></td></tr>
+            <tr><td><code>POST /logs</code></td><td>سجل الطباعة (+ <code>cap</code> · <code>total</code> · <code>truncated</code>)</td></tr>
+            <tr><td><code>get_employees</code> · <code>check_employee</code> · <code>verify_employee</code> · <code>register_pin</code> · <code>log_logout</code></td><td>Universal D1 Auth</td></tr>
+            <tr><td><code>diag</code></td><td>فحص ذاتي بدون كتابة — متغيرات · D1 · موظفين · OAuth · صلاحيات · Origin</td></tr>
+            <tr><td><code>get_config</code></td><td><code>WORKER_VERSION</code> — بيتقارن بـ <code>MIN_WORKER_VERSION</code></td></tr>
+          </table>
+
+          <h4>⚙️ إجراءات كل خيار</h4>
+          <table>
+            <tr><th>النوع</th><th>الإجراءات على شوبيفاي بالترتيب</th></tr>
+            <tr><td><code>S1</code></td><td>قراءة <code>custom.manual_status</code> → تاج <code>Printed(S1)</code> → <code>custom.printing_time_s1</code> → <code>custom.manual_status = Ready</code> (بعد تحقق التحوّل) → صف <code>metafields_change</code> في D1</td></tr>
+            <tr><td><code>S2</code></td><td>قراءة <code>custom.status_2_r_e</code> → تاج <code>Printed(S2)</code> → <code>custom.printing_time_s2</code> → <code>custom.status_2_r_e = Ready</code> (بعد تحقق التحوّل) → صف <code>metafields_change</code> في D1</td></tr>
+          </table>
+        </div>
+      </details>
+
+      <details class="about-sec">
+        <summary>🔧 تشريح الكود</summary>
+        <div class="about-sec-body">
+          <h4>FEATURE MAP</h4>
+          <ul>
+            <li><code>§STYLES</code> — التوكنز وكل CSS الأداة</li>
+            <li><code>§LOGIN</code> — شاشة الدخول على خطوتين (PIN)</li>
+            <li><code>§SHELL</code> — الهيدر الـ sticky + شريط التابات + chip التاب</li>
+            <li><code>§TOOL</code> — تاب الطباعة: KPIs · لوحة النتائج · شريط الطباعة · القسم الموحّد (فلاتر + جدول)</li>
+            <li><code>§LOG</code> — تاب السجل: KPIs · بانر التقصّ · القسم الموحّد</li>
+            <li><code>§MODALS</code> — الإعدادات · تأكيد إعادة الطباعة · About · Changelog</li>
+            <li><code>§CONFIG</code> — <code>WORKER_URL</code> · <code>LS_SECRET</code> · <code>apiRequest</code>/<code>apiPath</code>/<code>apiGet</code>/<code>apiPost</code></li>
+            <li><code>§SHELL-JS</code> — النسخ · حارس الـ Worker · التوست · <code>playBeep</code> · <code>runDiag</code> · Freeze on Scroll</li>
+            <li><code>§AUTH-JS</code> — ماكينة حالات الدخول الأربعة</li>
+            <li><code>§TABLE-JS</code> — منطق عام للقسمين: multi-select · الفترة · الترتيب · الـ chips</li>
+            <li><code>§TOOL-JS</code> — تحميل الأوردرات · الاختيار · الطباعة · لوحة النتائج</li>
+            <li><code>§LOG-JS</code> — تحميل السجل · KPIs · التصدير</li>
+            <li><code>§INVOICE-JS</code> — رسم فواتير S1/S2 + الطباعة عبر iframe</li>
+          </ul>
+
+          <h4>KEY VARIABLES</h4>
+          <ul>
+            <li><code>currentEmployee</code> — في ذاكرة الـ JS فقط، عمره ما يروح <code>localStorage</code></li>
+            <li><code>TOOL_VERSION</code> — نسخة الواجهة، مصدر واحد بيغذّي زرار الهيدر وشاشة الدخول والـ Changelog</li>
+            <li><code>MIN_WORKER_VERSION</code> — أقل نسخة Worker مقبولة. <strong>مالهاش علاقة بـ <code>TOOL_VERSION</code></strong></li>
+            <li><code>LS_SECRET = 'order_printer_worker_secret'</code> — المفتاح الوحيد في <code>localStorage</code></li>
+            <li><code>WORKER_URL</code> — ثابت في <code>§CONFIG</code>، مش حقل إعدادات (Standards #28)</li>
+            <li><code>msState</code> — حالة كل فلاتر التابين بمفاتيح مسبوقة بـ <code>p</code> (طباعة) أو <code>l</code> (سجل)</li>
+            <li><code>sec.print</code> / <code>sec.log</code> — حالة البحث والتاريخ والترتيب لكل قسم على حدة</li>
+          </ul>
+
+          <h4>NOTES / QUIRKS</h4>
+          <ul>
+            <li><code>ZONE_FILTER</code> بيتطبّق في الـ Worker — «الأوردر مش ظاهر» يعني <code>custom.zone</code> بره <code>Cairo+Giza</code>/<code>Show_Room</code>. العدد المستبعَد معروض في KPI.</li>
+            <li><code>Delivered</code> حالة نهائية — الطباعة بتتسجّل بس الحالة <strong>مش</strong> بتتكتب، والنتيجة بترجع <code>warning</code>.</li>
+            <li>عدّاد «مرات الطباعة» بيتبني من سجل D1، وبيقصّ عند سقف الـ Worker — البانر فوق جدول السجل بيقول لو ده حصل.</li>
+            <li>مستند الـ <code>iframe</code> بتاع الفاتورة مالوش وصول لـ <code>:root</code>، فألوانه حرفية — استثناء تقني موثّق من Standards #35.</li>
+            <li>فلترة الجدولين client-side على البيانات المحمّلة — الأداة بتحمّل السجل كله عشان تبني عدّاد الطباعة، فمفيش pagination من السيرفر.</li>
+          </ul>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── Changelog ─── -->
+<div class="eco-overlay" id="changelogOverlay" onclick="if(event.target===this)closeChangelog()">
+  <div class="eco-modal">
+    <div class="eco-modal-hdr">
+      <span>📋 سجل التحديثات</span>
+      <button class="modal-close-x" onclick="closeChangelog()">✕</button>
+    </div>
+    <div class="eco-modal-body">
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.0.0</span>
+          <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">03-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>شريط تابات بعرض الأداة كامل، والهيدر بيتقفل مضغوط مع السكرول وبيظهر chip لتبديل التاب.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>التابين بقوا قسم موحّد: فلاتر + جدول في كارت واحد، بفلاتر اختيار متعدد وترتيب على الأعمدة.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>سجل الطباعة بقى جدول بأعمدة تاريخ ووقت منفصلة، والموظف اللي طبع بقى عمود.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>كل رقم أوردر بقى لينك بيفتح الأوردر على شوبيفاي في تاب جديد.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>نافذتا «عن الأداة» و«سجل التحديثات».</span></div>
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span>مربّع «النهارده» كان بيتحسب بيوم UTC — بقى بيوم القاهرة، فالطباعة بين ١٢ و٣ الفجر مابقتش تتحسب على اليوم اللي فات.</span></div>
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span>عرض الوقت كان بتوقيت جهاز الموظف — بقى بتوقيت القاهرة دايمًا وبالصيغة الموحّدة.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head"><span class="cl-ver">v2.0.0</span><span class="cl-date">03-09-2026</span></div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>شاشة دخول بالـ PIN — كل عملية طباعة بقت مسجّلة باسم الموظف.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>نتيجة كل تسجيل طباعة بتلات حالات: تم · تم جزئيًا · فشل، مع سطر «ما تم فعليًا».</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>زرار 🩺 فحص النظام في الإعدادات + تحذير لو نسخة الـ Worker أقدم من المطلوب.</span></div>
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span>فشل تسجيل الطباعة كان بيتبلع في صمت — بقى بيوصل للموظف.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>رابط الـ Worker بقى ثابت في الكود؛ الإعدادات فيها الـ SECRET بس.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head"><span class="cl-ver">v1.x</span><span class="cl-date">قبل النقل</span></div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>النسخة الأصلية: اختيار الأوردرات، طباعة الفواتير، تسجيل الطباعة، وتحديث الحالة لـ Ready.</span></div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -842,9 +1513,11 @@ function apiGet(action, params = {}) {
 }
 
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "2.0.0";
+const TOOL_VERSION = "3.0.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
@@ -876,9 +1549,12 @@ function showWorkerStale() {
     "error", 7000);
 }
 
+// مصدر واحد لرقم النسخة — الهيدر + شاشة الدخول (والـ Changelog badge ثابت في الـ HTML)
 function renderVersionUI() {
   const v = document.getElementById("loginVersionText");
   if (v) v.textContent = `v${TOOL_VERSION}`;
+  const b = document.getElementById("versionBtn");
+  if (b) b.textContent = `v${TOOL_VERSION} 📋`;
 }
 
 function showToast(msg, type = "info", ms = 3200) {
@@ -898,9 +1574,9 @@ function playBeep(type) {
     const osc = _audioCtx.createOscillator(), gain = _audioCtx.createGain();
     osc.connect(gain); gain.connect(_audioCtx.destination);
     const t = _audioCtx.currentTime;
-    if (type === "success")      { osc.frequency.setValueAtTime(880, t); osc.frequency.setValueAtTime(1100, t + .1); gain.gain.setValueAtTime(.3, t); }
-    else if (type === "warn")    { osc.frequency.setValueAtTime(620, t); osc.frequency.setValueAtTime(520,  t + .12); gain.gain.setValueAtTime(.3, t); }
-    else                         { osc.frequency.setValueAtTime(300, t); osc.frequency.setValueAtTime(200,  t + .15); gain.gain.setValueAtTime(.4, t); }
+    if (type === "success")   { osc.frequency.setValueAtTime(880, t); osc.frequency.setValueAtTime(1100, t + .1);  gain.gain.setValueAtTime(.3, t); }
+    else if (type === "warn") { osc.frequency.setValueAtTime(620, t); osc.frequency.setValueAtTime(520,  t + .12); gain.gain.setValueAtTime(.3, t); }
+    else                      { osc.frequency.setValueAtTime(300, t); osc.frequency.setValueAtTime(200,  t + .15); gain.gain.setValueAtTime(.4, t); }
     gain.gain.exponentialRampToValueAtTime(0.001, t + .3);
     osc.start(t); osc.stop(t + .3);
   } catch {}
@@ -922,6 +1598,11 @@ function saveSettings() {
   loadEmployeesList();
 }
 
+function openAbout()      { document.getElementById("aboutOverlay").classList.add("open"); }
+function closeAbout()     { document.getElementById("aboutOverlay").classList.remove("open"); }
+function openChangelog()  { document.getElementById("changelogOverlay").classList.add("open"); }
+function closeChangelog() { document.getElementById("changelogOverlay").classList.remove("open"); }
+
 // ⚠️ diag ممنوع يعرض قيمة أي سر — الأسماء والأطوال بس (بيكشف المسافة المخفية).
 async function runDiag() {
   const box = document.getElementById("diagResult");
@@ -937,6 +1618,916 @@ async function runDiag() {
   } catch (e) {
     box.innerHTML = `❌ ${escHtml(e.message)}`;
   }
+}
+
+// ─── §SHELL-JS::tabs + Freeze on Scroll (tabs-and-modals § 1b) ───
+const TAB_IDS = ["print", "log"];
+const TAB_BTN = { print: "tabPrint", log: "tabLog" };
+const TAB_PANEL = { print: "panelPrint", log: "panelLog" };
+let currentTab = "print";
+let logsLoaded = false;
+let lastUpdatedText = "";
+
+function switchMainTab(tab) {
+  currentTab = tab;
+  TAB_IDS.forEach(id => {
+    document.getElementById(TAB_BTN[id]).classList.toggle("active", id === tab);
+    document.getElementById(TAB_PANEL[id]).classList.toggle("active", id === tab);
+  });
+  if (tab === "log" && !logsLoaded) loadLogs();
+  updateTabChip();
+  closeTabChipMenu();
+}
+function handleRefresh() { loadOrders(true); if (logsLoaded) loadLogs(); }
+
+const stickyWrap = document.getElementById("stickyWrap");
+const STICK_OFF = 12;
+let STICK_ON = 140;                 // بيتحسب من الارتفاع الفعلي — دي قيمة مبدئية آمنة بس
+let stickyDelta = 0, stickyW = 0, stickyRafPending = false;
+
+// بيقيس كام بكسل ارتفاع الهيدر بيقلّ لما يتقفل. القياس ده هو اللي بيحدد عرض الـ
+// hysteresis، لأن نفس الفرق ده بيرتد على scrollY وقت القفل (scroll anchoring).
+function measureSticky() {
+  const wasStuck = stickyWrap.classList.contains("stuck");
+  const nodes = [stickyWrap, ...stickyWrap.querySelectorAll("*")];
+  const prev  = nodes.map(n => n.style.transition);
+  nodes.forEach(n => n.style.transition = "none");
+  stickyWrap.classList.remove("stuck");  const open = stickyWrap.offsetHeight;
+  stickyWrap.classList.add("stuck");     const shut = stickyWrap.offsetHeight;
+  stickyWrap.classList.toggle("stuck", wasStuck);
+  stickyWrap.offsetHeight;
+  nodes.forEach((n, i) => n.style.transition = prev[i]);
+  stickyDelta = Math.max(0, open - shut);
+  STICK_ON = Math.max(40, stickyDelta + STICK_OFF + 24);
+  stickyW = window.innerWidth;
+}
+
+function onPageScroll() {
+  if (stickyRafPending) return;
+  stickyRafPending = true;
+  requestAnimationFrame(() => {
+    stickyRafPending = false;
+    const y = window.scrollY;
+    const isStuck = stickyWrap.classList.contains("stuck");
+    if (!isStuck && y > STICK_ON)      stickyWrap.classList.add("stuck");
+    else if (isStuck && y < STICK_OFF) stickyWrap.classList.remove("stuck");
+  });
+}
+window.addEventListener("scroll", onPageScroll, { passive: true });
+
+// ⚠️ إعادة القياس على تغيّر العرض بس — ارتفاع الشاشة بيتغيّر عشرات المرات على الموبايل
+let stickyResizeTimer;
+window.addEventListener("resize", () => {
+  if (window.innerWidth === stickyW) return;
+  clearTimeout(stickyResizeTimer);
+  stickyResizeTimer = setTimeout(measureSticky, 150);
+});
+
+function updateTabChip() {
+  const label = document.getElementById(TAB_BTN[currentTab]).textContent.trim();
+  document.getElementById("activeTabChipLabel").textContent = label;
+  document.querySelectorAll("#tabChipMenu .tab-chip-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.tab === currentTab);
+  });
+}
+function buildTabChipMenu() {
+  document.getElementById("tabChipMenu").innerHTML = TAB_IDS.map(id => {
+    const btn = document.getElementById(TAB_BTN[id]);
+    return `<div class="tab-chip-item ${id === currentTab ? "active" : ""}" data-tab="${id}"
+      onclick="event.stopPropagation(); switchMainTab('${id}');">${btn.textContent.trim()}</div>`;
+  }).join("");
+}
+function toggleTabChipMenu(e) {
+  e.stopPropagation();
+  const chip = document.getElementById("activeTabChip"), menu = document.getElementById("tabChipMenu");
+  const willOpen = !menu.classList.contains("open");
+  menu.classList.toggle("open", willOpen);
+  chip.classList.toggle("open", willOpen);
+}
+function closeTabChipMenu() {
+  document.getElementById("tabChipMenu")?.classList.remove("open");
+  document.getElementById("activeTabChip")?.classList.remove("open");
+}
+document.addEventListener("click", (e) => {
+  const chip = document.getElementById("activeTabChip");
+  if (chip && !chip.contains(e.target)) closeTabChipMenu();
+});
+
+// ══════════════════════════════════════════════════════════════
+// §HELPERS-JS — التاريخ والوقت وأرقام الأوردرات
+// ══════════════════════════════════════════════════════════════
+function toCairo(iso) { return new Date(new Date(iso).getTime() + 3 * 60 * 60 * 1000); }
+const pad2 = n => String(n).padStart(2, "0");
+
+// الصيغة الموحّدة — datetime-format.md § 3/§ 4/§ 4b
+function formatDateTime(iso) {
+  const d = toCairo(iso);
+  let h = d.getUTCHours();
+  const ampm = h >= 12 ? "مساءً" : "صباحاً";
+  h = h % 12 || 12;
+  return `📅 ${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()} 🕐 ${pad2(h)}:${pad2(d.getUTCMinutes())} ${ampm}`;
+}
+function formatDate(iso) {
+  const d = toCairo(iso);
+  return `📅 ${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
+}
+function formatTimeOnly(iso) {
+  const d = toCairo(iso);
+  let h = d.getUTCHours();
+  const ampm = h >= 12 ? "مساءً" : "صباحاً";
+  h = h % 12 || 12;
+  return `🕐 ${pad2(h)}:${pad2(d.getUTCMinutes())} ${ampm}`;
+}
+// أعمدة XLSX — بدون إيموجي (بتكسر الفرز/الفلترة جوّه الشيت)
+function formatDateForExport(iso) {
+  const d = toCairo(iso);
+  return `${pad2(d.getUTCDate())}-${pad2(d.getUTCMonth()+1)}-${d.getUTCFullYear()}`;
+}
+function formatTimeForExport(iso) {
+  const d = toCairo(iso);
+  let h = d.getUTCHours();
+  const ampm = h >= 12 ? "مساءً" : "صباحاً";
+  h = h % 12 || 12;
+  return `${pad2(h)}:${pad2(d.getUTCMinutes())} ${ampm}`;
+}
+// ⚠️ يوم القاهرة مش يوم UTC — الفرق بيحط أي عملية بين ١٢ و٣ الفجر في اليوم اللي فات
+function cairoDayStr(iso) {
+  const d = toCairo(iso);
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
+}
+function cairoToday() { return cairoDayStr(new Date().toISOString()); }
+
+// ─── Order number → hyperlink (design-system § Order Number Display) ───
+const SHOP_DOMAIN = "6c7e1a-53.myshopify.com";
+function shopifyOrderUrl(orderId) {
+  const id = String(orderId).includes("gid://") ? String(orderId).split("/").pop() : orderId;
+  return `https://${SHOP_DOMAIN}/admin/orders/${id}`;
+}
+function orderLink(orderNumber, orderId) {
+  const label = String(orderNumber).startsWith("#") ? orderNumber : `#${orderNumber}`;
+  if (!orderId) return `<span class="order-num">${escHtml(label)}</span>`;   // ممنوع تخمين رابط
+  return `<a href="${shopifyOrderUrl(orderId)}" target="_blank" rel="noopener" class="order-link">${escHtml(label)}</a>`;
+}
+
+function escHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function money(n) {
+  const v = parseFloat(n) || 0;
+  return v % 1 === 0 ? v.toLocaleString("en-US") : v.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+// حالات مؤقتة (⏳) بتتلوّن عشان الأوردر العالق فيها ما يبقاش غير مرئي
+const STATUS_CLASS = {
+  "Confirmed": "accent", "Confirmed + Edit": "amber", "Pending Edit": "amber",
+  "WhatsApp-Confirmed": "amber", "WhatsApp-CANCELLED": "amber",
+  "Confirmed + RETURN": "purple", "Confirmed + EXCHANGE": "purple",
+};
+function statusCell(status) {
+  const cls = STATUS_CLASS[status] || "";
+  const warn = (status === "Confirmed + Edit" || status === "Pending Edit") ? "✏️ " : "";
+  return `<span class="status-badge ${cls}">${warn}${escHtml(status)}</span>`;
+}
+function countClass(c) { return c >= 3 ? "count-3" : c === 2 ? "count-2" : c === 1 ? "count-1" : "count-0"; }
+
+// ══════════════════════════════════════════════════════════════
+// §TABLE-JS — المنطق العام للقسمين (data-table-standard.md)
+// ══════════════════════════════════════════════════════════════
+// مفاتيح الفلاتر مسبوقة بـ p (تاب الطباعة) أو l (تاب السجل) — نفس الـ msState
+// بيخدم القسمين، فالدوال العامة تحت بتفضل منسوخة حرفيًا من المعيار.
+const msState = {
+  pType:   { items: [], selected: new Set(), search: "", mode: "list" },
+  pStatus: { items: [], selected: new Set(), search: "", mode: "list" },
+  pCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
+  pTotal:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
+  lType:   { items: [], selected: new Set(), search: "", mode: "list" },
+  lCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
+  lEmp:    { items: [], selected: new Set(), search: "", mode: "list" },
+};
+const keySection  = { pType:"print", pStatus:"print", pCount:"print", pTotal:"print", lType:"log", lCount:"log", lEmp:"log" };
+const filterLabels = {
+  pType:"النوع", pStatus:"الحالة", pCount:"مرات الطباعة", pTotal:"الإجمالي",
+  lType:"النوع", lCount:"مرات الطباعة", lEmp:"الموظف",
+};
+const sec = {
+  print: { keys:["pType","pStatus","pCount","pTotal"], searchTerm:"", dateFrom:null, dateTo:null,
+           dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
+  log:   { keys:["lType","lCount","lEmp"],             searchTerm:"", dateFrom:null, dateTo:null,
+           dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
+};
+const sortConfig = {
+  name:{type:"string"}, customer:{type:"string"}, type:{type:"string"}, status:{type:"string"},
+  emp:{type:"string"}, total:{type:"number"}, count:{type:"number"},
+  date:{type:"date"}, time:{type:"date"},
+};
+
+function applyFilters(section) { section === "log" ? applyLogFilters() : applyPrintFilters(); }
+
+/* ── طي الفلاتر والجدول ── */
+function toggleFilters(section) {
+  sec[section].fltOpen = !sec[section].fltOpen;
+  document.getElementById(`fltBody-${section}`).classList.toggle("collapsed", !sec[section].fltOpen);
+  document.getElementById(`fltToggleIcon-${section}`).classList.toggle("open", sec[section].fltOpen);
+}
+function toggleTable(section) {
+  sec[section].tblOpen = !sec[section].tblOpen;
+  document.getElementById(`tblBodyWrap-${section}`).classList.toggle("collapsed", !sec[section].tblOpen);
+  document.getElementById(`tblToggleIcon-${section}`).classList.toggle("open", sec[section].tblOpen);
+}
+
+/* ── ⚠️ !!value مش !== null — الخاصية ممكن تكون undefined أصلاً (البند القاتل) ── */
+function anyFilterActive(section) {
+  const s = sec[section];
+  const msActive = s.keys.some(k => msState[k].selected.size > 0 || !!msState[k].rangeFrom || !!msState[k].rangeTo);
+  return msActive || s.searchTerm.trim().length > 0 || s.dateFilterActive;
+}
+function updateFilterIconState(section) {
+  const active = anyFilterActive(section);
+  document.getElementById(`fltIcon-${section}`).classList.toggle("active", active);
+  document.getElementById(`clearAllBtn-${section}`).classList.toggle("inactive", !active);
+}
+
+/* ── Multi-select ── */
+function msRenderList(key) {
+  const st = msState[key];
+  const listEl = document.getElementById(`msList-${key}`);
+  if (!listEl) return;
+  const q = st.search.trim().toLowerCase();
+  const visible = q ? st.items.filter(it => it.label.toLowerCase().includes(q)) : st.items;
+  listEl.innerHTML = !visible.length
+    ? '<div class="ms-empty">لا توجد نتائج مطابقة للبحث</div>'
+    : visible.map(it => {
+        const checked = st.selected.has(it.value);
+        const v = String(it.value).replace(/'/g, "\\'");
+        return `<div class="ms-item ${checked?"checked":""}" onclick="msToggleItem('${key}','${v}')">
+          <input type="checkbox" ${checked?"checked":""} onclick="event.stopPropagation(); msToggleItem('${key}','${v}')">
+          <span class="ms-item-label">${escHtml(it.label)}</span>
+        </div>`;
+      }).join("");
+  const allVisibleChecked = visible.length > 0 && visible.every(it => st.selected.has(it.value));
+  const saEl = document.getElementById(`msSelectAll-${key}`);
+  if (saEl) saEl.checked = allVisibleChecked;
+  const saLbl = document.getElementById(`msSelectAllLabel-${key}`);
+  if (saLbl) saLbl.textContent = q ? `تحديد كل نتائج البحث (${visible.length})` : "تحديد الكل";
+  msUpdateButtonLabel(key);
+  const cnt = document.getElementById(`msFtrCount-${key}`);
+  if (cnt) cnt.textContent = `${st.selected.size} مختار`;
+}
+
+function msUpdateButtonLabel(key) {
+  const st  = msState[key];
+  const btn = document.getElementById(`msBtn-${key}`);
+  const lbl = document.getElementById(`msBtnLabel-${key}`);
+  if (!btn || !lbl) return;
+  const n = st.selected.size;
+  const hasRange = st.mode === "range" && (st.rangeFrom || st.rangeTo);
+  btn.classList.toggle("has-selection", n > 0 || !!hasRange);
+  if (hasRange)      lbl.textContent = `${st.rangeFrom||"0"} – ${st.rangeTo||"∞"}`;
+  else if (n === 0)  lbl.textContent = key === "lEmp" ? "كل الموظفين" : "الكل";
+  else if (n === 1) {
+    const it = st.items.find(i => i.value === [...st.selected][0]);
+    lbl.textContent = it ? it.label : [...st.selected][0];
+  }
+  else lbl.innerHTML = `${n} محدد <span class="ms-count">${n}</span>`;
+}
+
+function msToggle(key) {
+  const menu = document.getElementById(`msMenu-${key}`), btn = document.getElementById(`msBtn-${key}`);
+  const willOpen = !menu.classList.contains("open");
+  Object.keys(msState).forEach(k => {
+    document.getElementById(`msMenu-${k}`)?.classList.remove("open");
+    document.getElementById(`msBtn-${k}`)?.classList.remove("open");
+  });
+  if (willOpen) { menu.classList.add("open"); btn.classList.add("open"); }
+}
+function msToggleItem(key, value) {
+  const st = msState[key];
+  st.selected.has(value) ? st.selected.delete(value) : st.selected.add(value);
+  msRenderList(key); renderChips(); applyFilters(keySection[key]);
+}
+function msToggleSelectAll(key, forceState) {
+  const st = msState[key];
+  const q = st.search.trim().toLowerCase();
+  const visible = q ? st.items.filter(it => it.label.toLowerCase().includes(q)) : st.items;
+  const allChecked = visible.length > 0 && visible.every(it => st.selected.has(it.value));
+  const shouldCheck = forceState !== undefined ? forceState : !allChecked;
+  visible.forEach(it => shouldCheck ? st.selected.add(it.value) : st.selected.delete(it.value));
+  msRenderList(key); renderChips(); applyFilters(keySection[key]);
+}
+function msFilterList(key, value) { msState[key].search = value; msRenderList(key); }
+function msClear(key) {
+  msState[key].selected.clear();
+  msRenderList(key); renderChips(); applyFilters(keySection[key]);
+}
+function msSwitchMode(key, mode) {
+  const st = msState[key];
+  if (st.mode === mode) return;
+  st.mode = mode;
+  if (mode === "range") { st.selected.clear(); msRenderList(key); }
+  else {
+    st.rangeFrom = ""; st.rangeTo = "";
+    const f = document.getElementById(`msRangeFrom-${key}`), t = document.getElementById(`msRangeTo-${key}`);
+    if (f) f.value = ""; if (t) t.value = "";
+  }
+  document.getElementById(`msModeBtn-${key}-list`).classList.toggle("active", mode === "list");
+  document.getElementById(`msModeBtn-${key}-range`).classList.toggle("active", mode === "range");
+  document.getElementById(`msPanel-${key}-list`).classList.toggle("active", mode === "list");
+  document.getElementById(`msPanel-${key}-range`).classList.toggle("active", mode === "range");
+  msUpdateButtonLabel(key); renderChips(); applyFilters(keySection[key]);
+}
+function msRangeChanged(key) {
+  msState[key].rangeFrom = document.getElementById(`msRangeFrom-${key}`).value;
+  msState[key].rangeTo   = document.getElementById(`msRangeTo-${key}`).value;
+  msUpdateButtonLabel(key); renderChips(); applyFilters(keySection[key]);
+}
+function msRangeClear(key) {
+  document.getElementById(`msRangeFrom-${key}`).value = "";
+  document.getElementById(`msRangeTo-${key}`).value = "";
+  msState[key].rangeFrom = ""; msState[key].rangeTo = "";
+  msUpdateButtonLabel(key); renderChips(); applyFilters(keySection[key]);
+}
+
+// ⚠️ الحارس الأول إلزامي: اختيار عنصر بيعمل re-render للقائمة، فالعنصر المضغوط
+// بيتشال من الـ DOM قبل ما الحدث يوصل هنا، و wrap.contains(detached) بترجّع false
+// فالقائمة كانت هتتقفل بعد أول اختيار — يعني multi-select بالاسم بس. لا تشيله.
+document.addEventListener("click", (e) => {
+  if (!document.contains(e.target)) return;
+  Object.keys(msState).forEach(k => {
+    const wrap = document.getElementById(`msWrap-${k}`);
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById(`msMenu-${k}`)?.classList.remove("open");
+      document.getElementById(`msBtn-${k}`)?.classList.remove("open");
+    }
+  });
+});
+
+function numericPass(key, value) {
+  const st = msState[key];
+  if (st.mode === "range") {
+    if (!st.rangeFrom && !st.rangeTo) return true;
+    const from = st.rangeFrom !== "" && st.rangeFrom != null ? Number(st.rangeFrom) : -Infinity;
+    const to   = st.rangeTo   !== "" && st.rangeTo   != null ? Number(st.rangeTo)   :  Infinity;
+    return value >= from && value <= to;
+  }
+  if (st.selected.size === 0) return true;
+  return st.selected.has(String(value));
+}
+
+function rangeLabel(key) {
+  const st = msState[key];
+  if (st.mode !== "range") return null;
+  if (!st.rangeFrom && !st.rangeTo) return null;
+  return `${st.rangeFrom||"0"} – ${st.rangeTo||"∞"}`;
+}
+// اسم الفلتر مرة واحدة في أول السطر — مش مكرر جوّه كل chip
+function renderChips() {
+  Object.keys(msState).forEach(key => {
+    const row = document.getElementById(`chipsRow-${key}`);
+    if (!row) return;
+    const label = filterLabels[key] || key;
+    const valueChips = [...msState[key].selected].map(val => {
+      const item = msState[key].items.find(it => it.value === val);
+      const v = item ? item.label : val;
+      return `<span class="ms-chip">${escHtml(v)}<button onclick="msToggleItem('${key}','${String(val).replace(/'/g,"\\'")}')">✕</button></span>`;
+    }).join("");
+    const rl = rangeLabel(key);
+    const rangeChip = rl ? `<span class="ms-chip">${escHtml(rl)}<button onclick="msRangeClear('${key}')">✕</button></span>` : "";
+    const chips = valueChips + rangeChip;
+    row.innerHTML = chips ? `<span class="chips-label">${label}:</span>${chips}` : "";
+  });
+}
+
+/* ── Search ── */
+const searchTimers = {};
+function onSearchInput(section, el) {
+  el.classList.toggle("has-value", el.value.trim().length > 0);
+  clearTimeout(searchTimers[section]);
+  searchTimers[section] = setTimeout(() => { sec[section].searchTerm = el.value; applyFilters(section); }, 300);
+}
+
+/* ── Date range preset — بدون افتراضي (data-table-standard § 5) ── */
+const presetLabels = { today:"اليوم", yesterday:"أمس", last7:"آخر 7 أيام", last30:"آخر 30 يوم", thisMonth:"الشهر الحالي" };
+function toggleRangePresetMenu(e, section) {
+  e.stopPropagation();
+  document.getElementById(`rangePresetMenu-${section}`).classList.toggle("open");
+}
+document.addEventListener("click", (e) => {
+  ["print","log"].forEach(s => {
+    const wrap = document.getElementById(`rangePresetWrap-${s}`);
+    if (wrap && !wrap.contains(e.target)) document.getElementById(`rangePresetMenu-${s}`)?.classList.remove("open");
+  });
+});
+// ⚠️ الفترات بتتحسب بيوم القاهرة — نفس المرجع اللي بتتفلتر بيه الصفوف
+function presetRange(preset) {
+  const now = toCairo(new Date().toISOString());
+  const ymd = d => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
+  const from = new Date(now.getTime()), to = new Date(now.getTime());
+  if      (preset === "yesterday") { from.setUTCDate(now.getUTCDate()-1); to.setUTCDate(now.getUTCDate()-1); }
+  else if (preset === "last7")     { from.setUTCDate(now.getUTCDate()-6); }
+  else if (preset === "last30")    { from.setUTCDate(now.getUTCDate()-29); }
+  else if (preset === "thisMonth") { from.setUTCDate(1); }
+  return { from: ymd(from), to: ymd(to) };
+}
+function applyRangePreset(section, preset) {
+  const s = sec[section], r = presetRange(preset);
+  s.activePreset = preset; s.dateFrom = r.from; s.dateTo = r.to;
+  s.dateFilterActive = true;   // أي فترة يختارها المستخدم — حتى "اليوم" — فلتر مفعّل
+  document.getElementById(`rangeDateFrom-${section}`).value = r.from;
+  document.getElementById(`rangeDateTo-${section}`).value   = r.to;
+  document.getElementById(`rangePresetLabel-${section}`).textContent = `⚡ ${presetLabels[preset]}`;
+  document.getElementById(`rangePresetBtn-${section}`).classList.add("has-preset");
+  document.querySelectorAll(`#rangePresetMenu-${section} .range-preset-item`)
+    .forEach(el => el.classList.toggle("active", el.dataset.preset === preset));
+  document.getElementById(`rangePresetMenu-${section}`).classList.remove("open");
+  applyFilters(section);
+}
+function onDateChanged(section) {
+  const s = sec[section];
+  s.activePreset = "";
+  s.dateFrom = document.getElementById(`rangeDateFrom-${section}`).value || null;
+  s.dateTo   = document.getElementById(`rangeDateTo-${section}`).value   || null;
+  s.dateFilterActive = !!(s.dateFrom || s.dateTo);
+  document.getElementById(`rangePresetLabel-${section}`).textContent = "⚡ اختار فترة";
+  document.getElementById(`rangePresetBtn-${section}`).classList.toggle("has-preset", s.dateFilterActive);
+  document.querySelectorAll(`#rangePresetMenu-${section} .range-preset-item`).forEach(el => el.classList.remove("active"));
+  applyFilters(section);
+}
+// الحالة المحايدة الوحيدة: بلا فلتر تاريخ خالص (مش "اليوم")
+function resetDateFilter(section) {
+  const s = sec[section];
+  s.activePreset = ""; s.dateFrom = null; s.dateTo = null; s.dateFilterActive = false;
+  document.getElementById(`rangeDateFrom-${section}`).value = "";
+  document.getElementById(`rangeDateTo-${section}`).value   = "";
+  document.getElementById(`rangePresetLabel-${section}`).textContent = "⚡ اختار فترة";
+  document.getElementById(`rangePresetBtn-${section}`).classList.remove("has-preset");
+  document.querySelectorAll(`#rangePresetMenu-${section} .range-preset-item`).forEach(el => el.classList.remove("active"));
+}
+function clearRangePreset(section) {
+  resetDateFilter(section);
+  document.getElementById(`rangePresetMenu-${section}`).classList.remove("open");
+  applyFilters(section);
+}
+
+function clearAllFilters(section) {
+  sec[section].keys.forEach(k => {
+    const st = msState[k];
+    st.selected.clear();
+    if (st.rangeFrom !== undefined) {
+      st.rangeFrom = ""; st.rangeTo = ""; st.mode = "list";
+      const f = document.getElementById(`msRangeFrom-${k}`), t = document.getElementById(`msRangeTo-${k}`);
+      if (f) f.value = ""; if (t) t.value = "";
+      document.getElementById(`msModeBtn-${k}-list`)?.classList.add("active");
+      document.getElementById(`msModeBtn-${k}-range`)?.classList.remove("active");
+      document.getElementById(`msPanel-${k}-list`)?.classList.add("active");
+      document.getElementById(`msPanel-${k}-range`)?.classList.remove("active");
+    }
+    msRenderList(k);
+  });
+  const si = document.getElementById(`searchInput-${section}`);
+  si.value = ""; si.classList.remove("has-value"); sec[section].searchTerm = "";
+  renderChips();
+  resetDateFilter(section);
+  applyFilters(section);
+}
+
+/* ── الترتيب — مستقل تمامًا عن الفلاتر ── */
+function toggleSort(section, key) {
+  const st = sec[section].sortState;
+  if (st.key !== key)            { st.key = key; st.dir = "asc"; }
+  else if (st.dir === "asc")     { st.dir = "desc"; }
+  else                           { st.key = null; st.dir = null; }   // ضغطة تالتة = بلا ترتيب
+  updateSortHeaderUI(section);
+  applyFilters(section);
+}
+function updateSortHeaderUI(section) {
+  const st = sec[section].sortState;
+  const root = document.getElementById(`tblBodyWrap-${section}`).parentElement;
+  root.querySelectorAll(".sort-icon").forEach(el => {
+    const isActive = st.key === el.dataset.sortKey;
+    el.textContent = isActive ? (st.dir === "asc" ? "▲" : "▼") : "";
+    el.classList.toggle("active", isActive);
+  });
+  root.querySelectorAll(".sortable-th").forEach(th => th.classList.toggle("sorted", th.dataset.sortKey === st.key));
+}
+function applySort(section, rows) {
+  const st = sec[section].sortState;
+  if (!st.key) return rows;                       // بلا ترتيب = الترتيب الأصلي
+  const cfg = sortConfig[st.key], dir = st.dir === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {               // نسخة جديدة — ممنوع تعديل المصفوفة الأصلية
+    const av = a[st.key], bv = b[st.key];
+    if (cfg.type === "date")   return (new Date(av).getTime() - new Date(bv).getTime()) * dir;
+    if (cfg.type === "string") return String(av ?? "").localeCompare(String(bv ?? ""), "ar") * dir;
+    return ((av ?? 0) - (bv ?? 0)) * dir;
+  });
+}
+function rebuildMsItems(key, values, labelFn) {
+  const st = msState[key];
+  st.items = values.map(v => ({ value: String(v), label: labelFn ? labelFn(v) : String(v) }));
+  [...st.selected].forEach(v => { if (!st.items.some(i => i.value === v)) st.selected.delete(v); });
+  msRenderList(key);
+}
+
+// ══════════════════════════════════════════════════════════════
+// §TOOL-JS — تاب الطباعة
+// ══════════════════════════════════════════════════════════════
+let allOrders      = [];
+let filteredOrders = [];
+let selectedIds    = new Set();
+let printCountsMap = {};
+let zoneExcluded   = 0;
+
+function showPrint(id) {
+  ["printLoadingState","printErrorState","printDashboard"].forEach(s => {
+    document.getElementById(s).style.display = s === id ? (id === "printDashboard" ? "block" : "flex") : "none";
+  });
+}
+
+async function loadOrders(forceRefresh = false) {
+  if (!isConfigured()) { openSettings(); return; }
+  showPrint("printLoadingState");
+  try {
+    const [ordersData, logsData] = await Promise.all([
+      apiPath("/orders", { forceRefresh }),
+      apiPath("/logs", {}),
+    ]);
+    allOrders    = ordersData.orders || [];
+    zoneExcluded = ordersData.zoneExcluded || 0;
+    selectedIds.clear();
+
+    allLogs = logsData.entries || [];
+    logsLoaded = true;
+    buildLogPrintCounts();
+    renderLogTruncationWarning(logsData, { toast: true });
+
+    rebuildPrintFilterItems();
+    updatePrintKPIs();
+    applyPrintFilters();
+    stampUpdated();
+    showPrint("printDashboard");
+    measureSticky();
+  } catch (err) {
+    document.getElementById("printErrorMsg").textContent = err.message;
+    showPrint("printErrorState");
+  }
+}
+
+function stampUpdated() {
+  lastUpdatedText = "آخر تحديث: " + formatDateTime(new Date().toISOString());
+  document.getElementById("lastUpdated").textContent = lastUpdatedText;
+}
+
+function getPrintCount(order) {
+  return printCountsMap[String(order.name).replace("#","")] || 0;
+}
+
+function rebuildPrintFilterItems() {
+  const rows = decoratePrintRows();
+  rebuildMsItems("pType",   [...new Set(rows.map(r => r.type))].sort());
+  rebuildMsItems("pStatus", [...new Set(rows.map(r => r.status).filter(Boolean))].sort());
+  rebuildMsItems("pCount",  [...new Set(rows.map(r => r.count))].sort((a,b)=>a-b));
+  rebuildMsItems("pTotal",  [...new Set(rows.map(r => r.total))].sort((a,b)=>a-b), v => money(v));
+}
+
+function decoratePrintRows() {
+  return allOrders.map(o => ({
+    ...o,
+    count: getPrintCount(o),
+    date:  o.createdAt,
+    time:  o.createdAt,          // نفس الـ timestamp — عمودان للعرض بس
+    day:   cairoDayStr(o.createdAt),
+  }));
+}
+
+function updatePrintKPIs() {
+  document.getElementById("kpiS1").textContent = allOrders.filter(o => o.type === "S1").length.toLocaleString("en-US");
+  document.getElementById("kpiS2").textContent = allOrders.filter(o => o.type === "S2").length.toLocaleString("en-US");
+  document.getElementById("kpiZoneExcluded").textContent = zoneExcluded.toLocaleString("en-US");
+}
+
+function applyPrintFilters() {
+  updateFilterIconState("print");
+  const s = sec.print;
+  const q = s.searchTerm.trim().toLowerCase();
+  filteredOrders = decoratePrintRows().filter(o => {
+    if (q && !(String(o.name).toLowerCase().includes(q) || String(o.customer).toLowerCase().includes(q))) return false;
+    if (msState.pType.selected.size   && !msState.pType.selected.has(o.type))     return false;
+    if (msState.pStatus.selected.size && !msState.pStatus.selected.has(o.status)) return false;
+    if (!numericPass("pCount", o.count)) return false;
+    if (!numericPass("pTotal", o.total)) return false;
+    if (s.dateFrom && o.day < s.dateFrom) return false;
+    if (s.dateTo   && o.day > s.dateTo)   return false;
+    return true;
+  });
+  renderPrintTable(applySort("print", filteredOrders));
+  document.getElementById("filteredCount-print").textContent = filteredOrders.length.toLocaleString("en-US");
+  updatePrintBar();
+}
+
+function renderPrintTable(rows) {
+  const tbody = document.getElementById("printTableBody");
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">لا توجد أوردرات تطابق الفلاتر</td></tr>';
+  } else {
+    tbody.innerHTML = rows.map(o => {
+      const isSel = selectedIds.has(o.id);
+      const c = o.count;
+      return `<tr class="${isSel ? "selected" : ""}">
+        <td><input type="checkbox" ${isSel ? "checked" : ""} onchange="toggleRow('${o.id}', this.checked)"></td>
+        <td>${orderLink(o.name, o.orderId)}</td>
+        <td>${formatDate(o.createdAt)}</td>
+        <td>${formatTimeOnly(o.createdAt)}</td>
+        <td>${escHtml(o.customer)}</td>
+        <td><span class="type-badge ${o.type.toLowerCase()}">${escHtml(o.type)}</span></td>
+        <td>${statusCell(o.status)}</td>
+        <td class="col-num">${money(o.total)}</td>
+        <td><span class="count-badge ${countClass(c)}">${c}</span></td>
+      </tr>`;
+    }).join("");
+  }
+  const allSel = rows.length > 0 && rows.every(o => selectedIds.has(o.id));
+  document.getElementById("selectAll").checked = allSel;
+}
+
+function toggleRow(id, checked) {
+  checked ? selectedIds.add(id) : selectedIds.delete(id);
+  applyPrintFilters();
+}
+function toggleSelectAll(checked) {
+  filteredOrders.forEach(o => checked ? selectedIds.add(o.id) : selectedIds.delete(o.id));
+  applyPrintFilters();
+}
+function selectAllVisible() {
+  const allSel = filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.has(o.id));
+  toggleSelectAll(!allSel);
+}
+function clearSelection() { selectedIds.clear(); applyPrintFilters(); }
+
+function updatePrintBar() {
+  const n = selectedIds.size;
+  document.getElementById("selectedInfo").textContent = n ? `تم تحديد ${n.toLocaleString("en-US")} أوردر` : "لم يتم تحديد أي أوردر";
+  document.getElementById("clearSelBtn").style.display      = n ? "" : "none";
+  document.getElementById("printSelectedBtn").style.display = n ? "" : "none";
+}
+
+function printAll() {
+  if (!filteredOrders.length) { showToast("لا توجد أوردرات للطباعة", "warn"); return; }
+  selectedIds = new Set(filteredOrders.map(o => o.id));
+  applyPrintFilters();
+  startPrint();
+}
+
+async function startPrint() {
+  const selected = filteredOrders.filter(o => selectedIds.has(o.id));
+  if (!selected.length) { showToast("لم يتم تحديد أي أوردر", "warn"); return; }
+  const alreadyPrinted = selected.filter(o => o.count > 0);
+  if (alreadyPrinted.length) { showConfirmReprint(alreadyPrinted, selected); return; }
+  await executePrint(selected);
+}
+
+function showConfirmReprint(alreadyPrinted, allSelected) {
+  document.getElementById("confirmWarningTitle").textContent =
+    `${alreadyPrinted.length.toLocaleString("en-US")} أوردر سبق طباعته:`;
+  document.getElementById("confirmOrdersList").innerHTML = alreadyPrinted.map(o =>
+    `<div class="confirm-order-item">
+       <span>${orderLink(o.name, o.orderId)}</span>
+       <span class="confirm-order-meta">اتطبع ${o.count.toLocaleString("en-US")} مرة · ${escHtml(o.type)}</span>
+     </div>`).join("");
+  const btn = document.getElementById("confirmPrintBtn");
+  const fresh = btn.cloneNode(true);          // بيمسح أي listener قديم
+  btn.parentNode.replaceChild(fresh, btn);
+  fresh.addEventListener("click", () => { closeConfirm(); executePrint(allSelected); });
+  document.getElementById("confirmOverlay").classList.add("open");
+}
+function closeConfirm() { document.getElementById("confirmOverlay").classList.remove("open"); }
+
+async function executePrint(selectedOrders) {
+  if (!currentEmployee) { showToast("سجّل الدخول أولاً", "error"); return; }
+  showPrintLoading(`جاري تحضير ${selectedOrders.length.toLocaleString("en-US")} فاتورة...`);
+  try {
+    const invoices = await Promise.all(
+      selectedOrders.map(o => apiPath("/invoice", { orderId: o.id }).then(d => {
+        if (d.truncatedLineItems) {
+          showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
+        }
+        return d.invoice;
+      }))
+    );
+    showPrintLoading("جاري رسم الفواتير...");
+    const invoiceHTML = invoices.map(inv => inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)).join("");
+
+    // ⚠️ التسجيل مش بـ .catch(() => {}) — فشل التسجيل لازم يوصل للموظف.
+    // والنتيجة بتتقرا من الـ Worker كما هي: success | warning | error.
+    const tracked = await Promise.all(invoices.map(inv =>
+      apiPath("/track", { orderId: inv.id, orderNumber: inv.name, type: inv.type, employee: currentEmployee.username })
+        .then(res => ({ ...res, orderNumber: res.orderNumber || inv.name, orderId: res.orderId || inv.orderId, type: inv.type }))
+        .catch(err => ({ status:"error", orderNumber: inv.name, orderId: inv.orderId, type: inv.type,
+                         actions: [], warnings: [], errors: [err.message], logged: false }))
+    ));
+
+    showPrintLoading("جاري فتح نافذة الطباعة...");
+    await printViaIframe(invoiceHTML, invoices.length);
+
+    for (const inv of invoices) {
+      const num = String(inv.name).replace("#","");
+      printCountsMap[num] = (printCountsMap[num] || 0) + 1;
+    }
+    renderTrackResults(tracked);
+    clearSelection();
+    hidePrintLoading();
+    await loadOrders(true);
+    if (logsLoaded) loadLogs();
+  } catch (err) {
+    hidePrintLoading();
+    showToast("خطأ: " + err.message, "error", 7000);
+  }
+}
+
+// ─── §TOOL-JS::renderTrackResults ───
+// ٣ حالات مش اتنين — والحالة جاية من الـ Worker كما هي، مش مشتقّة من success.
+function renderTrackResults(rows) {
+  const box = document.getElementById("trackResults");
+  if (!rows || !rows.length) { box.innerHTML = ""; return; }
+
+  const n  = t => rows.filter(r => (r.status || "error") === t).length;
+  const ok = n("success"), warn = n("warning"), bad = n("error");
+  if (bad) playBeep("error"); else if (warn) playBeep("warn"); else playBeep("success");
+
+  const badge = st => st === "success" ? '<span class="result-badge badge-success">✓ تم</span>'
+                    : st === "warning" ? '<span class="result-badge badge-warn">⚠ تم جزئيًا</span>'
+                                       : '<span class="result-badge badge-danger">✗ فشل</span>';
+
+  box.innerHTML =
+    '<div class="results-panel">' +
+      '<div class="results-head">' +
+        '<span>نتيجة تسجيل الطباعة</span>' +
+        `<span class="results-summary">تم: ${ok} ✓ | تحذير: ${warn} ⚠ | فشل: ${bad} ✗</span>` +
+        '<div style="flex:1"></div>' +
+        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'trackResults\').innerHTML=\'\'">إخفاء</button>' +
+      '</div>' +
+      '<div class="results-list">' +
+      rows.map(r => {
+        const st = r.status || "error";
+        const parts = [
+          `<div>${badge(st)} ${orderLink(r.orderNumber || "", r.orderId)} <span style="color:var(--text-secondary)">[${escHtml(r.type || "")}]</span></div>`,
+          `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
+        ];
+        (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
+        (r.errors   || []).forEach(e => parts.push(`<div class="result-detail">✗ ${escHtml(e)}</div>`));
+        if (r.logged === false) parts.push('<div class="result-warn">⚠ العملية تمت لكن ما اتسجلتش في السجل</div>');
+        return `<div class="result-row ${st}">${parts.join("")}</div>`;
+      }).join("") +
+      '</div>' +
+    '</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// §LOG-JS — تاب سجل الطباعة
+// ══════════════════════════════════════════════════════════════
+let allLogs      = [];
+let logCounts    = {};
+let filteredLogs = [];
+
+function showLogs(id) {
+  ["logsLoadingState","logsErrorState","logsDashboard"].forEach(s => {
+    document.getElementById(s).style.display = s === id ? (id === "logsDashboard" ? "block" : "flex") : "none";
+  });
+}
+
+async function loadLogs() {
+  if (!isConfigured()) { openSettings(); return; }
+  showLogs("logsLoadingState");
+  try {
+    const data = await apiPath("/logs", {});
+    allLogs    = data.entries || [];
+    logsLoaded = true;
+    buildLogPrintCounts();
+    renderLogTruncationWarning(data);
+    rebuildLogFilterItems();
+    updateLogKPIs();
+    applyLogFilters();
+    applyPrintFilters();
+    stampUpdated();
+    showLogs("logsDashboard");
+  } catch (err) {
+    document.getElementById("logsErrorMsg").textContent = err.message;
+    showLogs("logsErrorState");
+  }
+}
+
+function buildLogPrintCounts() {
+  logCounts = {};
+  for (const e of allLogs) logCounts[e.orderNumber] = (logCounts[e.orderNumber] || 0) + 1;
+  printCountsMap = { ...logCounts };
+}
+
+// ─── §LOG-JS::renderLogTruncationWarning ───
+// السقف بيرجع من الـ Worker (cap) — الواجهة ماتكتبهوش عندها.
+function renderLogTruncationWarning(data, { toast = false } = {}) {
+  const w = document.getElementById("logExportWarn");
+  if (!w) return;
+  if (!data || data.truncated !== true) { w.style.display = "none"; w.innerHTML = ""; return; }
+  w.innerHTML = `⚠️ <b>سجل الطباعة اتقص</b> — معروض ${(data.count || 0).toLocaleString("en-US")} صف ` +
+    `من أصل <b>${(data.total || 0).toLocaleString("en-US")}</b> (سقف الـ Worker ${(data.cap || 0).toLocaleString("en-US")}). ` +
+    `عدّاد "مرات الطباعة" ممكن يكون ناقص للأوردرات القديمة — ضيّق الفترة.`;
+  w.style.display = "";
+  if (toast) showToast('⚠️ سجل الطباعة اتقص — عدّاد "مرات الطباعة" ممكن يكون ناقص', "warn", 7000);
+}
+
+function decorateLogRows() {
+  return allLogs.map(e => ({
+    ...e,
+    name:  e.orderNumber,
+    emp:   e.employee || "—",
+    count: logCounts[e.orderNumber] || 1,
+    date:  e.timestamp,
+    time:  e.timestamp,          // نفس الـ timestamp — عمودان للعرض بس
+    day:   cairoDayStr(e.timestamp),
+  }));
+}
+
+function rebuildLogFilterItems() {
+  const rows = decorateLogRows();
+  rebuildMsItems("lType",  [...new Set(rows.map(r => r.type))].sort(),
+                 v => v === "S2" ? "S2 — استبدال/استرجاع" : "S1 — أوردر عادي");
+  rebuildMsItems("lCount", [...new Set(rows.map(r => r.count))].sort((a,b)=>a-b));
+  rebuildMsItems("lEmp",   [...new Set(rows.map(r => r.emp))].sort());
+}
+
+function updateLogKPIs() {
+  const today = cairoToday();                      // ⚠️ يوم القاهرة مش يوم UTC
+  const rows  = decorateLogRows();
+  document.getElementById("logKpiTotal").textContent = rows.length.toLocaleString("en-US");
+  document.getElementById("logKpiToday").textContent = rows.filter(e => e.day === today).length.toLocaleString("en-US");
+  document.getElementById("logKpiS1").textContent    = rows.filter(e => e.type === "S1").length.toLocaleString("en-US");
+  document.getElementById("logKpiS2").textContent    = rows.filter(e => e.type === "S2").length.toLocaleString("en-US");
+  document.getElementById("logKpiDup").textContent   = Object.values(logCounts).filter(c => c > 1).length.toLocaleString("en-US");
+  document.getElementById("logKpiUniq").textContent  = Object.keys(logCounts).length.toLocaleString("en-US");
+}
+
+function applyLogFilters() {
+  updateFilterIconState("log");
+  const s = sec.log;
+  const q = s.searchTerm.trim().replace("#","").toLowerCase();
+  filteredLogs = decorateLogRows().filter(e => {
+    if (q && !String(e.orderNumber).toLowerCase().includes(q)) return false;
+    if (msState.lType.selected.size && !msState.lType.selected.has(e.type)) return false;
+    if (msState.lEmp.selected.size  && !msState.lEmp.selected.has(e.emp))   return false;
+    if (!numericPass("lCount", e.count)) return false;
+    if (s.dateFrom && e.day < s.dateFrom) return false;
+    if (s.dateTo   && e.day > s.dateTo)   return false;
+    return true;
+  });
+  renderLogsTable(applySort("log", filteredLogs));
+  document.getElementById("filteredCount-log").textContent = filteredLogs.length.toLocaleString("en-US");
+}
+
+function renderLogsTable(rows) {
+  const tbody = document.getElementById("logsTableBody");
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">لا توجد نتائج</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(e => `<tr>
+    <td>${formatDate(e.timestamp)}</td>
+    <td>${formatTimeOnly(e.timestamp)}</td>
+    <td>${orderLink(e.orderNumber, e.orderId)}</td>
+    <td><span class="type-badge ${String(e.type).toLowerCase()}">${escHtml(e.type)}</span></td>
+    <td>${escHtml(e.emp)}</td>
+    <td><span class="count-badge ${countClass(e.count)}">${e.count}</span></td>
+  </tr>`).join("");
+}
+
+async function exportLogsXLSX() {
+  if (!filteredLogs.length) { showToast("لا توجد بيانات للتصدير", "warn"); return; }
+  const wb = new ExcelJS.Workbook();
+  wb.views = [{ rightToLeft: true }];
+  const ws = wb.addWorksheet("سجل الطباعة");
+  ws.views = [{ state: "frozen", ySplit: 1, rightToLeft: true }];
+  ws.columns = [
+    { header: "التاريخ",         key: "date",  width: 16 },
+    { header: "الوقت",           key: "time",  width: 16 },
+    { header: "رقم الأوردر",     key: "num",   width: 16 },
+    { header: "نوع الفاتورة",    key: "type",  width: 22 },
+    { header: "الموظف",          key: "emp",   width: 20 },
+    { header: "مرات الطباعة",    key: "count", width: 16 },
+  ];
+  for (const e of applySort("log", filteredLogs)) {
+    ws.addRow({
+      date:  formatDateForExport(e.timestamp),
+      time:  formatTimeForExport(e.timestamp),
+      num:   `#${e.orderNumber}`,
+      type:  e.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي",
+      emp:   e.emp,
+      count: e.count,
+    });
+  }
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob   = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement("a");
+  a.href = url; a.download = `print-log-${cairoToday()}.xlsx`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast(`تم تصدير ${filteredLogs.length.toLocaleString("en-US")} عملية ✓`, "success");
 }
 
 
@@ -1199,341 +2790,9 @@ function updateLoginSettingsBtn() {
   btn.classList.toggle("missing", !isConfigured());
 }
 
-
 // ══════════════════════════════════════════════════════════════
-// §TOOL-JS
+// §INVOICE-JS
 // ══════════════════════════════════════════════════════════════
-let currentTab   = "print";
-let logsLoaded   = false;
-let lastUpdatedText = "";
-
-function switchTab(tab, btn) {
-  currentTab = tab;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById(`tab-${tab}`).classList.add("active");
-  document.getElementById("lastUpdated").textContent = lastUpdatedText;
-  if (tab === "logs" && !logsLoaded) loadLogs();
-}
-function handleRefresh() { loadOrders(true); loadLogs(); }
-
-let allOrders      = [];
-let filteredOrders = [];
-let selectedIds    = new Set();
-let printCountsMap = {};
-
-function showPrint(id) {
-  ["printLoadingState","printErrorState","printDashboard"].forEach(s => {
-    document.getElementById(s).style.display =
-      s === id ? (id === "printDashboard" ? "block" : "flex") : "none";
-  });
-}
-
-async function loadOrders(forceRefresh = false) {
-  if (!isConfigured()) { openSettings(); return; }
-  showPrint("printLoadingState");
-  try {
-    const [ordersData, logsData] = await Promise.all([
-      apiPath("/orders", { forceRefresh }),
-      apiPath("/logs", {}),
-    ]);
-    allOrders = ordersData.orders || [];
-    renderLogTruncationWarning(logsData, { toast: true });
-    selectedIds.clear();
-    const logEntries = logsData.entries || [];
-    printCountsMap = {};
-    for (const e of logEntries) {
-      printCountsMap[e.orderNumber] = (printCountsMap[e.orderNumber] || 0) + 1;
-    }
-    allLogs = logEntries;
-    logsLoaded = true;
-    buildLogPrintCounts();
-    updatePrintKPIs();
-    applyPrintFilters();
-    lastUpdatedText = "آخر تحديث: " + formatDateTime(new Date().toISOString());
-    document.getElementById("lastUpdated").textContent = lastUpdatedText;
-    showPrint("printDashboard");
-  } catch (err) {
-    document.getElementById("printErrorMsg").textContent = err.message;
-    showPrint("printErrorState");
-  }
-}
-
-function getPrintCount(order) {
-  const num = order.name.replace("#","");
-  return printCountsMap[num] || 0;
-}
-function updatePrintKPIs() {
-  document.getElementById("kpiS1").textContent = allOrders.filter(o=>o.type==="S1").length.toLocaleString("en-US");
-  document.getElementById("kpiS2").textContent = allOrders.filter(o=>o.type==="S2").length.toLocaleString("en-US");
-}
-
-let activeCountFilters = new Set(["0"]);
-
-function toggleCountFilter(val) {
-  if (activeCountFilters.has(val)) {
-    if (activeCountFilters.size === 1) return;
-    activeCountFilters.delete(val);
-  } else {
-    activeCountFilters.add(val);
-  }
-  document.querySelectorAll(".count-toggle").forEach(btn => {
-    btn.classList.toggle("active", activeCountFilters.has(btn.dataset.val));
-  });
-  applyPrintFilters();
-}
-
-function applyPrintFilters() {
-  const orderQ = document.getElementById("filterOrder").value.trim().replace("#","");
-  const typeQ  = document.getElementById("filterType").value;
-  filteredOrders = allOrders;
-  if (orderQ)          filteredOrders = filteredOrders.filter(o => o.name.replace("#","").includes(orderQ));
-  if (typeQ !== "all") filteredOrders = filteredOrders.filter(o => o.type === typeQ);
-  const all3 = activeCountFilters.has("0") && activeCountFilters.has("1") && activeCountFilters.has("2+");
-  if (!all3) {
-    filteredOrders = filteredOrders.filter(o => {
-      const c = getPrintCount(o);
-      if (activeCountFilters.has("0")  && c === 0)  return true;
-      if (activeCountFilters.has("1")  && c === 1)  return true;
-      if (activeCountFilters.has("2+") && c >= 2)   return true;
-      return false;
-    });
-  }
-  document.getElementById("printResultCount").textContent = filteredOrders.length.toLocaleString("en-US") + " نتيجة";
-  renderPrintTable();
-  updatePrintBar();
-}
-
-function clearPrintFilters() {
-  document.getElementById("filterOrder").value = "";
-  document.getElementById("filterType").value  = "all";
-  activeCountFilters = new Set(["0"]);
-  document.querySelectorAll(".count-toggle").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.val === "0");
-  });
-  applyPrintFilters();
-}
-
-function renderPrintTable() {
-  const tbody  = document.getElementById("printTableBody");
-  const empty  = document.getElementById("printTableEmpty");
-  const footer = document.getElementById("printTableFooter");
-  if (!filteredOrders.length) {
-    tbody.innerHTML = "";
-    empty.style.display = "block";
-    footer.textContent = "";
-    return;
-  }
-  empty.style.display = "none";
-  tbody.innerHTML = filteredOrders.map(o => {
-    const count      = getPrintCount(o);
-    const checked    = selectedIds.has(o.id) ? "checked" : "";
-    const rowClass   = selectedIds.has(o.id) ? "selected" : "";
-    const typeLabel  = o.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي";
-    const typeClass  = o.type === "S2" ? "type-s2" : "type-s1";
-    const countClass = count === 0 ? "count-0" : count === 1 ? "count-1" : count === 2 ? "count-2" : "count-3";
-    return `<tr class="${rowClass}" onclick="toggleRow('${o.id}', event)">
-      <td class="center" onclick="event.stopPropagation()">
-        <input type="checkbox" ${checked} onchange="toggleRow('${o.id}', event)">
-      </td>
-      <td><span class="mono">${o.name}</span></td>
-      <td>${escHtml(o.customer)}</td>
-      <td style="font-size:12px;">${formatDate(o.createdAt)}</td>
-      <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
-      <td style="font-size:12px;">${statusCell(o.status)}</td>
-      <td class="center"><span class="count-badge ${countClass}">${count}</span></td>
-    </tr>`;
-  }).join("");
-  footer.textContent = `عرض ${filteredOrders.length.toLocaleString("en-US")} من ${allOrders.length.toLocaleString("en-US")} أوردر`;
-}
-
-function toggleRow(id, event) {
-  if (selectedIds.has(id)) selectedIds.delete(id);
-  else selectedIds.add(id);
-  applyPrintFilters();
-}
-function toggleSelectAll(checked) {
-  if (checked) filteredOrders.forEach(o => selectedIds.add(o.id));
-  else         selectedIds.clear();
-  applyPrintFilters();
-}
-function clearSelection() {
-  selectedIds.clear();
-  document.getElementById("selectAll").checked = false;
-  applyPrintFilters();
-}
-function updatePrintBar() {
-  const count = selectedIds.size;
-  const s1c = [...selectedIds].filter(id => allOrders.find(o=>o.id===id)?.type==="S1").length;
-  const s2c = [...selectedIds].filter(id => allOrders.find(o=>o.id===id)?.type==="S2").length;
-  let info = count === 0 ? "لم يتم تحديد أي أوردر" : `${count} أوردر محدد`;
-  if (count > 0) {
-    if (s1c && s2c)   info += ` (${s1c} عادي + ${s2c} استبدال)`;
-    else if (s1c)     info += ` (${s1c} عادي)`;
-    else if (s2c)     info += ` (${s2c} استبدال)`;
-  }
-  document.getElementById("selectedInfo").textContent = info;
-  const hasSelection = count > 0;
-  document.getElementById("printSelectedBtn").style.display = hasSelection ? "inline-flex" : "none";
-  document.getElementById("clearSelBtn").style.display     = hasSelection ? "inline-flex" : "none";
-}
-
-function printAll() {
-  filteredOrders.forEach(o => selectedIds.add(o.id));
-  applyPrintFilters();
-  startPrint();
-}
-
-let pendingPrintOrders = null;
-
-async function startPrint() {
-  if (!selectedIds.size) return;
-  const selected = allOrders.filter(o => selectedIds.has(o.id));
-  const alreadyPrinted = selected.filter(o => getPrintCount(o) > 0);
-  if (alreadyPrinted.length > 0) { showConfirmReprint(alreadyPrinted, selected); return; }
-  await executePrint(selected);
-}
-
-function showConfirmReprint(alreadyPrinted, allSelected) {
-  pendingPrintOrders = allSelected;
-  const title = alreadyPrinted.length === 1
-    ? `الأوردر التالي سبق طباعته:`
-    : `الأوردرات التالية (${alreadyPrinted.length}) سبق طباعتها:`;
-  document.getElementById("confirmWarningTitle").textContent = title;
-  const list = document.getElementById("confirmOrdersList");
-  list.innerHTML = alreadyPrinted.map(o => {
-    const count = getPrintCount(o);
-    const num   = o.name.replace("#","");
-    const lastEntry = allLogs.filter(e => e.orderNumber === num)
-      .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
-    const lastTime  = lastEntry ? formatDateTime(lastEntry.timestamp) : "—";
-    return `<div class="confirm-order-item">
-      <span class="confirm-order-num">${o.name}</span>
-      <span class="confirm-order-meta">طُبع ${count} ${count === 1 ? "مرة" : "مرات"} — آخرها: ${lastTime}</span>
-    </div>`;
-  }).join("");
-  const btn = document.getElementById("confirmPrintBtn");
-  const newBtn = btn.cloneNode(true);
-  btn.parentNode.replaceChild(newBtn, btn);
-  newBtn.addEventListener("click", () => {
-    const ordersToprint = pendingPrintOrders;
-    closeConfirm();
-    executePrint(ordersToprint);
-  });
-  document.getElementById("confirmOverlay").classList.add("open");
-}
-function closeConfirm() {
-  document.getElementById("confirmOverlay").classList.remove("open");
-  pendingPrintOrders = null;
-}
-
-async function executePrint(selectedOrders) {
-  if (!currentEmployee) { showToast("سجّل الدخول أولاً", "error"); return; }
-  showPrintLoading(`جاري تحضير ${selectedOrders.length} فاتورة...`);
-  try {
-    const invoices = await Promise.all(
-      selectedOrders.map(o => apiPath("/invoice", { orderId: o.id }).then(d => {
-        if (d.truncatedLineItems) {
-          showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
-        }
-        return d.invoice;
-      }))
-    );
-    showPrintLoading("جاري رسم الفواتير...");
-    const invoiceHTML = invoices.map(inv =>
-      inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)
-    ).join("");
-
-    // ⚠️ التسجيل **مش** بـ .catch(() => {}) — فشل التسجيل لازم يوصل للموظف.
-    // والنتيجة بتتقرا من الـ Worker كما هي: success | warning | error.
-    const tracked = await Promise.all(invoices.map(inv =>
-      apiPath("/track", {
-        orderId:     inv.id,
-        orderNumber: inv.name,
-        type:        inv.type,
-        employee:    currentEmployee.username,
-      })
-        .then(res => ({ ...res, orderNumber: res.orderNumber || inv.name, type: inv.type }))
-        .catch(err => ({
-          status: "error", orderNumber: inv.name, type: inv.type,
-          actions: [], warnings: [], errors: [err.message], logged: false,
-        }))
-    ));
-
-    showPrintLoading("جاري فتح نافذة الطباعة...");
-    await printViaIframe(invoiceHTML, invoices.length);
-
-    for (const inv of invoices) {
-      const num = inv.name.replace("#","");
-      printCountsMap[num] = (printCountsMap[num] || 0) + 1;
-    }
-    renderTrackResults(tracked);
-    clearSelection();
-    updatePrintKPIs();
-    applyPrintFilters();
-    hidePrintLoading();
-    await loadOrders(true);
-    if (logsLoaded) loadLogs();
-  } catch (err) {
-    hidePrintLoading();
-    showToast("خطأ: " + err.message, "error", 7000);
-  }
-}
-
-// ─── §TOOL-JS::renderTrackResults ───
-// ٣ حالات مش اتنين — والحالة جاية من الـ Worker كما هي، مش مشتقّة من success.
-function renderTrackResults(rows) {
-  const box = document.getElementById("trackResults");
-  if (!rows || !rows.length) { box.innerHTML = ""; return; }
-
-  const n = t => rows.filter(r => (r.status || "error") === t).length;
-  const ok = n("success"), warn = n("warning"), bad = n("error");
-  if (bad)       playBeep("error");
-  else if (warn) playBeep("warn");
-  else           playBeep("success");
-
-  const badge = st => st === "success" ? '<span class="result-badge badge-success">✓ تم</span>'
-                    : st === "warning" ? '<span class="result-badge badge-warn">⚠ تم جزئيًا</span>'
-                                       : '<span class="result-badge badge-danger">✗ فشل</span>';
-
-  box.innerHTML =
-    '<div class="results-panel">' +
-      '<div class="results-head">' +
-        '<span>نتيجة تسجيل الطباعة</span>' +
-        `<span class="results-summary">تم: ${ok} ✓ | تحذير: ${warn} ⚠ | فشل: ${bad} ✗</span>` +
-        '<div style="flex:1"></div>' +
-        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'trackResults\').innerHTML=\'\'">إخفاء</button>' +
-      '</div>' +
-      '<div class="results-list">' +
-      rows.map(r => {
-        const st = r.status || "error";
-        const parts = [
-          `<div>${badge(st)} <b>${escHtml(r.orderNumber || "")}</b> <span style="color:var(--text-secondary)">[${escHtml(r.type || "")}]</span></div>`,
-          `<div class="result-actions">ما تم فعليًا: ${(r.actions && r.actions.length) ? escHtml(r.actions.join(" · ")) : "لا شيء"}</div>`,
-        ];
-        (r.warnings || []).forEach(w => parts.push(`<div class="result-warn">⚠ ${escHtml(w)}</div>`));
-        (r.errors   || []).forEach(e => parts.push(`<div class="result-detail">✗ ${escHtml(e)}</div>`));
-        if (r.logged === false) parts.push('<div class="result-warn">⚠ العملية تمت لكن ما اتسجلتش في السجل</div>');
-        return `<div class="result-row ${st}">${parts.join("")}</div>`;
-      }).join("") +
-      '</div>' +
-    '</div>';
-}
-
-// ─── §TOOL-JS::renderLogTruncationWarning ───
-// السقف بيرجع من الـ Worker (cap) — الواجهة ماتكتبهوش عندها.
-function renderLogTruncationWarning(data, { toast = false } = {}) {
-  const w = document.getElementById("logExportWarn");
-  if (!w) return;
-  if (!data || data.truncated !== true) { w.style.display = "none"; w.innerHTML = ""; return; }
-  w.innerHTML = `⚠️ <b>سجل الطباعة اتقص</b> — معروض ${(data.count || 0).toLocaleString("en-US")} صف ` +
-    `من أصل <b>${(data.total || 0).toLocaleString("en-US")}</b> (سقف الـ Worker ${(data.cap || 0).toLocaleString("en-US")}). ` +
-    `عدّاد "طُبع كام مرة" ممكن يكون ناقص للأوردرات القديمة — ضيّق الفترة.`;
-  w.style.display = "";
-  if (toast) showToast("⚠️ سجل الطباعة اتقص — عدّاد \"طُبع كام مرة\" ممكن يكون ناقص", "warn", 7000);
-}
-
 // ── iframe Print ─────────────────────────────────────────────────────────────
 // ⚠️ استثناء موثّق من Standards #35 (صفر hex حرفي): مستند الـ iframe بيتبني
 // من الصفر ومالوش أي وصول لـ :root بتاع الصفحة، فـ var(--token) بترجع فاضية
@@ -1615,134 +2874,6 @@ function showPrintLoading(msg) {
 }
 function hidePrintLoading() {
   document.getElementById("printLoadingOverlay").classList.remove("show");
-}
-
-let allLogs      = [];
-let logCounts    = {};
-let filteredLogs = [];
-
-function showLogs(id) {
-  ["logsLoadingState","logsErrorState","logsDashboard"].forEach(s => {
-    document.getElementById(s).style.display =
-      s === id ? (id === "logsDashboard" ? "block" : "flex") : "none";
-  });
-}
-
-async function loadLogs() {
-  if (!isConfigured()) { openSettings(); return; }
-  showLogs("logsLoadingState");
-  try {
-    const data = await apiPath("/logs", {});
-    allLogs    = data.entries || [];
-    renderLogTruncationWarning(data);
-    logsLoaded = true;
-    buildLogPrintCounts();
-    printCountsMap = { ...logCounts };
-    updateLogKPIs();
-    applyLogFilters();
-    applyPrintFilters();
-    lastUpdatedText = "آخر تحديث: " + formatDateTime(new Date().toISOString());
-    document.getElementById("lastUpdated").textContent = lastUpdatedText;
-    showLogs("logsDashboard");
-  } catch (err) {
-    document.getElementById("logsErrorMsg").textContent = err.message;
-    showLogs("logsErrorState");
-  }
-}
-function buildLogPrintCounts() {
-  logCounts = {};
-  for (const e of allLogs) {
-    logCounts[e.orderNumber] = (logCounts[e.orderNumber] || 0) + 1;
-  }
-}
-function updateLogKPIs() {
-  const todayStr   = new Date().toISOString().slice(0, 10);
-  const today      = allLogs.filter(e => e.timestamp.startsWith(todayStr));
-  const dupOrders  = Object.values(logCounts).filter(c => c > 1).length;
-  const uniqOrders = Object.keys(logCounts).length;
-  document.getElementById("logKpiTotal").textContent = allLogs.length.toLocaleString("en-US");
-  document.getElementById("logKpiToday").textContent = today.length.toLocaleString("en-US");
-  document.getElementById("logKpiS1").textContent    = allLogs.filter(e=>e.type==="S1").length.toLocaleString("en-US");
-  document.getElementById("logKpiS2").textContent    = allLogs.filter(e=>e.type==="S2").length.toLocaleString("en-US");
-  document.getElementById("logKpiDup").textContent   = dupOrders.toLocaleString("en-US");
-  document.getElementById("logKpiUniq").textContent  = uniqOrders.toLocaleString("en-US");
-}
-function applyLogFilters() {
-  const orderQ = document.getElementById("logFilterOrder").value.trim().replace("#","");
-  const typeQ  = document.getElementById("logFilterType").value;
-  const countQ = document.getElementById("logFilterCount").value;
-  const fromQ  = document.getElementById("logFilterFrom").value;
-  const toQ    = document.getElementById("logFilterTo").value;
-  filteredLogs = allLogs;
-  if (orderQ)           filteredLogs = filteredLogs.filter(e => e.orderNumber.includes(orderQ));
-  if (typeQ !== "all")  filteredLogs = filteredLogs.filter(e => e.type === typeQ);
-  if (countQ === "1")   filteredLogs = filteredLogs.filter(e => (logCounts[e.orderNumber]||1) === 1);
-  if (countQ === "2+")  filteredLogs = filteredLogs.filter(e => (logCounts[e.orderNumber]||1) >= 2);
-  if (fromQ) filteredLogs = filteredLogs.filter(e => new Date(e.timestamp).getTime() >= new Date(fromQ).getTime());
-  if (toQ)   filteredLogs = filteredLogs.filter(e => new Date(e.timestamp).getTime() <= new Date(toQ+"T23:59:59").getTime());
-  document.getElementById("logResultCount").textContent = filteredLogs.length.toLocaleString("en-US") + " نتيجة";
-  renderLogsTable();
-}
-function clearLogFilters() {
-  document.getElementById("logFilterOrder").value = "";
-  document.getElementById("logFilterType").value  = "all";
-  document.getElementById("logFilterCount").value = "all";
-  document.getElementById("logFilterFrom").value  = "";
-  document.getElementById("logFilterTo").value    = "";
-  applyLogFilters();
-}
-function renderLogsTable() {
-  const tbody  = document.getElementById("logsTableBody");
-  const empty  = document.getElementById("logsTableEmpty");
-  const footer = document.getElementById("logsTableFooter");
-  if (!filteredLogs.length) {
-    tbody.innerHTML = "";
-    empty.style.display = "block";
-    footer.textContent = "";
-    return;
-  }
-  empty.style.display = "none";
-  tbody.innerHTML = filteredLogs.map(e => {
-    const count      = logCounts[e.orderNumber] || 1;
-    const countClass = count === 1 ? "count-1" : count === 2 ? "count-2" : "count-3";
-    const typeLabel  = e.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي";
-    const typeClass  = e.type === "S2" ? "type-s2" : "type-s1";
-    return `<tr>
-      <td><span class="mono">#${e.orderNumber}</span></td>
-      <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
-      <td style="font-size:13px;">${formatDateTime(e.timestamp)}</td>
-      <td class="center"><span class="count-badge ${countClass}">${count}</span></td>
-    </tr>`;
-  }).join("");
-  footer.textContent = `عرض ${filteredLogs.length.toLocaleString("en-US")} من إجمالي ${allLogs.length.toLocaleString("en-US")} عملية`;
-}
-async function exportLogsXLSX() {
-  if (!filteredLogs.length) { showToast("لا توجد بيانات للتصدير", "warn"); return; }
-  const wb = new ExcelJS.Workbook();
-  wb.views = [{ rightToLeft: true }];
-  const ws = wb.addWorksheet("سجل الطباعة");
-  ws.views = [{ state: "frozen", ySplit: 1, rightToLeft: true }];
-  ws.columns = [
-    { header: "رقم الأوردر",      key: "orderNumber", width: 16 },
-    { header: "نوع الفاتورة",      key: "type",        width: 20 },
-    { header: "التاريخ والوقت",    key: "datetime",    width: 28 },
-    { header: "عدد مرات الطباعة", key: "count",       width: 20 },
-  ];
-  for (const e of filteredLogs) {
-    ws.addRow({
-      orderNumber: `#${e.orderNumber}`,
-      type:        e.type === "S2" ? "استبدال/استرجاع" : "أوردر عادي",
-      datetime:    formatDateTime(e.timestamp),
-      count:       logCounts[e.orderNumber] || 1,
-    });
-  }
-  const today  = new Date().toISOString().slice(0, 10);
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob   = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  const url    = URL.createObjectURL(blob);
-  const a      = document.createElement("a");
-  a.href = url; a.download = `print-log-${today}.xlsx`;
-  a.click(); URL.revokeObjectURL(url);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1969,49 +3100,27 @@ function renderFooter() {
   </div>`;
 }
 
-function statusCell(status) {
-  if (status === "Confirmed + Edit") {
-    return '<span style="display:inline-flex;align-items:center;gap:4px;">'
-      + '<span style="background:var(--amber-light);color:var(--amber-dark);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid var(--amber-border);">✏️ Edit</span>'
-      + escHtml(status)
-      + '</span>';
-  }
-  return escHtml(status);
-}
-function money(n) {
-  const v = parseFloat(n) || 0;
-  return v % 1 === 0 ? v.toLocaleString("en-US") : v.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
-}
-function escHtml(s) {
-  if (!s) return "";
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-function formatDate(iso) {
-  const d = new Date(iso), pad = n => String(n).padStart(2,"0");
-  return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`;
-}
-function formatDateTime(iso) {
-  const d = new Date(iso), pad = n => String(n).padStart(2,"0");
-  let h = d.getHours();
-  const m = pad(d.getMinutes()), ampm = h >= 12 ? "مساءً" : "صباحاً";
-  h = h % 12 || 12;
-  return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} ${pad(h)}:${m} ${ampm}`;
-}
-function formatInvoiceDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" });
-}
 
-// ── Init — الأداة بتقف على شاشة الدخول؛ تحميل الداتا بيحصل في finishLogin() ──
+// ══════════════════════════════════════════════════════════════
+// §INIT — الأداة بتقف على شاشة الدخول؛ تحميل الداتا في finishLogin()
+// ══════════════════════════════════════════════════════════════
 window.addEventListener("load", () => {
-  currentTab = "print";
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".tab-btn").forEach((b,i) => { if(i===0) b.classList.add("active"); });
-  document.getElementById("tab-print").classList.add("active");
-
   renderVersionUI();
   updateLoginSettingsBtn();
   renderLoginMode("employee");
+
+  Object.keys(msState).forEach(k => msRenderList(k));
+  renderChips();
+  ["print", "log"].forEach(s => {
+    resetDateFilter(s);              // بلا فلتر تاريخ خالص من أول تحميل
+    updateFilterIconState(s);
+    updateSortHeaderUI(s);
+  });
+
+  buildTabChipMenu();                // لازم بعد ما أزرار التابات تبقى في الـ DOM
+  updateTabChip();
+  measureSticky();                   // بعد الاتنين فوق — الارتفاع مايبقاش نهائي قبلهم
+
   loadEmployeesList();
   if (isConfigured()) checkWorkerVersion();
 });
