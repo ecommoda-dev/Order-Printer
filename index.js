@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.0.0)
+// EcomModa — Order Printer (v2.1.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 03-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
@@ -24,6 +24,25 @@
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
 //
+// CHANGES (v2.1.0):
+//   - 🟠 R7 — الفاتورة بقت تقرا **أحدث دورة** إرجاع/استبدال بس بدل التجميع
+//     على كل الدورات (Rule 15 ②). أوردر عنده دورة مقفولة + مرتجع جديد كان
+//     بيطبع بنود الدورتين مع بعض، و`returnedIds` الملوّث كان بيستبعد بند
+//     صالح من `exchangeItems` — **ورق غلط بيوصل للعميل**. الترتيب بالـ
+//     `createdAt` وبعد فلترة CANCELED/DECLINED. والرد بقى فيه `multiCycle`
+//     و`cycleCount` عشان الواجهة تنبّه المغلِّف.
+//   - 🟠 R8 — `returns(first: 3)` بدون `pageInfo` كانت بتقص دورة رابعة
+//     **بصمت**. بقت `first: 10` + `returnLineItems`/`exchangeLineItems`
+//     `first: 50`، و`pageInfo` على التلاتة، والقصّ بيترجع في
+//     `truncatedReturns` جنب `truncatedLineItems` الموجود.
+//     (مراجعة 03-09-2026 · R7 + R8)
+//   - 🟠 R6 — حارس `WORKER_SECRET` الغايب قبل فحص المصادقة. من غيره
+//     `Bearer ${env.WORKER_SECRET}` بيتقيّم للنص الحرفي "Bearer undefined"
+//     لو السيكرت اتنسي أو النسخة اتنشرت بدون Promote — فأي طلب بالرأس ده
+//     كان بيعدّي المصادقة. الرد بقى 500 برسالة صريحة + step:'env'، و
+//     `?action=diag` بقى بيقول مضبوط/غايب + الطول (مش القيمة).
+//     (مراجعة 03-09-2026 · R6)
+//
 // CHANGES (v2.0.0) — كاسر:
 //   - Universal D1 Auth: كل عملية طباعة بقت مربوطة بموظف (كان عمود employee فاضي)
 //   - shopifyGQL بقت النسخة الحارسة (§5A ①) — كانت `return resp.json()` مجردة
@@ -38,7 +57,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.0.0';
+const WORKER_VERSION = '2.1.0';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -568,11 +587,17 @@ const INVOICE_QUERY = `
       totalOutstandingSet     { shopMoney { amount } }
       totalRefundedSet        { shopMoney { amount } }
 
-      returns(first: 3) {
+      # R7 + R8 (v2.1.0):
+      #   - first: 3 -> first: 10 — دورة رابعة كانت بتتقص بصمت
+      #   - pageInfo على التلاتة — القص بيترجع في truncatedReturns
+      #   - createdAt و closedAt لازمين لاختيار احدث دورة (Rule 15 ثانيا)
+      returns(first: 10) {
+        pageInfo { hasNextPage }
         nodes {
-          id status
+          id status createdAt closedAt
 
-          returnLineItems(first: 10) {
+          returnLineItems(first: 50) {
+            pageInfo { hasNextPage }
             nodes {
               ... on ReturnLineItem {
                 quantity
@@ -586,7 +611,8 @@ const INVOICE_QUERY = `
             }
           }
 
-          exchangeLineItems(first: 10) {
+          exchangeLineItems(first: 50) {
+            pageInfo { hasNextPage }
             nodes {
               id quantity
               lineItems {
@@ -633,26 +659,62 @@ async function handleInvoice(request, env) {
     (order.displayFinancialStatus   || '').toLowerCase() === 'paid' &&
     (order.displayFulfillmentStatus || '').toLowerCase() !== 'fulfilled';
 
+  // ══════════════════════════════════════════════════════════════
   // Return Items — من returns.nodes[].returnLineItems مش order.refunds
   // (order.refunds بتشمل refunds خاصة بالـ removed exchange items)
+  //
+  // ⚠️ R7 (v2.1.0) — **أحدث دورة بس، مش تجميع على كل الدورات** (Rule 15 ②)
+  //
+  //    الحلقة القديمة كانت بتلف على `order.returns.nodes` كلها. أوردر عنده
+  //    دورة استبدال مقفولة من الشهر اللي فات + مرتجع جديد مفتوح كان بيدي:
+  //      · بنود الدورتين مع بعض في `returnItems` → الفاتورة بتطبع بنود
+  //        دورة اتسوّت خلاص كأنها راجعة دلوقتي
+  //      · و`returnedIds` بقى فيه بنود قديمة → السطر تحت بيستبعد بند صالح
+  //        من `exchangeItems`
+  //    **النتيجة: ورق غلط بيوصل للعميل.**
+  //
+  //    Pack Checker محمي من نفس المشكلة **بالصدفة**: شرط `if (qty > 0)` جوّه
+  //    `classifyOrderItems` بيرمي بنود الدورات المنتهية. الطابعة مافيهاش
+  //    الشرط ده لأنها بتقرا الكمية من `returnLineItems.quantity` مباشرةً.
+  //
+  //    التكرار المقاس: ١١ أوردر multi-cycle من ١١,٢٤٠ (26-08-2026، Rule 15).
+  //    نادر — بس الأثر ورق مطبوع غلط، مش رقم في تقرير.
+  //
+  // ⚠️ الترتيب بالـ `createdAt` مش بترتيب المصفوفة — شوبيفاي مش ضامنة ترتيب
+  //    `returns.nodes`، والاعتماد عليه بيدي «أحدث دورة» عشوائية.
+  //    والمقارنة بـ `new Date()` مش نصيًا.
+  // ══════════════════════════════════════════════════════════════
+  const cycles = (order.returns?.nodes || [])
+    .filter(r => !['CANCELED', 'DECLINED'].includes(r.status))
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const currentCycle = cycles[cycles.length - 1] || null;
+
   const returnItems = [];
   const returnedIds = new Set();
 
-  for (const ret of (order.returns?.nodes || [])) {
-    for (const rli of (ret.returnLineItems?.nodes || [])) {
-      const li = rli.fulfillmentLineItem?.lineItem;
-      if (!li || (rli.quantity || 0) === 0) continue;
-      if (returnedIds.has(li.id)) continue;
-      returnedIds.add(li.id);
-      returnItems.push({
-        id:            li.id,
-        title:         li.title,
-        sku:           li.sku || '',
-        quantity:      rli.quantity,
-        originalPrice: parseFloat(li.originalUnitPriceSet?.shopMoney?.amount || 0),
-      });
-    }
+  for (const rli of (currentCycle?.returnLineItems?.nodes || [])) {
+    const li = rli.fulfillmentLineItem?.lineItem;
+    if (!li || (rli.quantity || 0) === 0) continue;
+    if (returnedIds.has(li.id)) continue;
+    returnedIds.add(li.id);
+    returnItems.push({
+      id:            li.id,
+      title:         li.title,
+      sku:           li.sku || '',
+      quantity:      rli.quantity,
+      originalPrice: parseFloat(li.originalUnitPriceSet?.shopMoney?.amount || 0),
+    });
   }
+
+  // R8 — القصّ في أي مستوى من الـ returns بيترجع للواجهة بدل ما يعدّي صامت.
+  //      الطابعة كانت على `first: 3` **بدون `pageInfo`** — دورة رابعة كانت
+  //      بتختفي من غير أي أثر، وهو بالظبط نوع الفشل اللي `truncatedLineItems`
+  //      اتضاف عشانه في نفس الملف.
+  const truncatedReturns =
+    order.returns?.pageInfo?.hasNextPage === true ||
+    (order.returns?.nodes || []).some(r =>
+      r.returnLineItems?.pageInfo?.hasNextPage === true ||
+      r.exchangeLineItems?.pageInfo?.hasNextPage === true);
 
   // Exchange Items:
   //   S2 → أيتمز لسه unfulfilled (fulfillableQuantity > 0) ومش return items
@@ -687,6 +749,14 @@ async function handleInvoice(request, env) {
     ok: true,
     // ⚠️ الفاتورة أوسع من 50 بند = بنود مش هتتطبع، من غير أي error
     truncatedLineItems: order.lineItems?.pageInfo?.hasNextPage === true,
+    // R8 — دورات إرجاع/استبدال اتقصّت (أكتر من 10 دورات أو 50 بند في دورة)
+    truncatedReturns,
+    // R7 — الأوردر عنده أكتر من دورة: الفاتورة بتعرض **أحدث** دورة بس،
+    //      والواجهة بتنبّه المغلِّف إنه يراجع.
+    multiCycle:      cycles.length > 1,
+    cycleCount:      cycles.length,
+    currentCycleId:  currentCycle?.id     || null,
+    currentCycleAt:  currentCycle?.createdAt || null,
     invoice: {
       id:        order.id,
       orderId:   order.legacyResourceId || String(order.id).split('/').pop(),
@@ -1021,6 +1091,13 @@ async function runDiag(request, env) {
   try { assertEnv(env, 'shopify'); push('المتغيرات والـ bindings', true, 'كل المطلوب موجود'); }
   catch (e) { push('المتغيرات والـ bindings', false, e.message); }
 
+  // R6: WORKER_SECRET — الاسم والطول بس، **مش القيمة**. الطول بيكشف المسافة
+  // المخفية اللي بتخلي المقارنة تفشل بلا سبب ظاهر.
+  push('WORKER_SECRET', !!env.WORKER_SECRET,
+    env.WORKER_SECRET
+      ? `مضبوط (${String(env.WORKER_SECRET).length} حرف)`
+      : 'غايب — أي طلب بـ "Bearer undefined" كان هيعدّي المصادقة قبل حارس R6');
+
   // D1
   try {
     const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM logs WHERE tool = ?').bind(TOOL_NAME).first();
@@ -1068,6 +1145,18 @@ export default {
     // ALWAYS first: CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: getCORS(request) });
+    }
+
+    // ── R6: حارس WORKER_SECRET الغايب — **قبل** أي مقارنة ─────────
+    // من غير السطور دي: لو السيكرت اتنسي أو النسخة اتنشرت بدون Promote،
+    // يبقى env.WORKER_SECRET === undefined، والقالب بيتقيّم للنص الحرفي
+    // "Bearer undefined" — فأي طلب بالرأس ده **بيعدّي المصادقة**.
+    // (مراجعة 03-09-2026 · R6 · نفس حارس logistics-control-center-worker)
+    if (!env.WORKER_SECRET) {
+      return json({
+        error: 'WORKER_SECRET غير مضبوط على الـ Worker — أضفه من Settings → Variables ثم اعمل Promote',
+        step:  'env',
+      }, 500, request);
     }
 
     // ALWAYS second: WORKER_SECRET check
