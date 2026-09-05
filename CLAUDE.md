@@ -6,7 +6,7 @@
 
 **بتعمل إيه:** الموظف بيسجّل دخول بـ PIN، بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
-**الإصدار:** Worker `v2.2.0` · الواجهة `v3.4.0` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.1.0`   ← لسه 2.1.0 عن قصد، السبب تحت
+**الإصدار:** Worker `v2.2.1` · الواجهة `v3.4.0` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.1.0`   ← لسه 2.1.0 عن قصد، السبب تحت
 
 ## الروابط
 
@@ -78,6 +78,13 @@ Vars     : SHOP_DOMAIN                        ← من [vars] في wrangler.toml
 Build watch paths : * (الافتراضي — التضييق ما اتعملش)
 compatibility_date: 2026-09-03                ← اتحرّك 03-09-2026 بعد فحص الأعلام (R12)
 ```
+> 🔗 **`WORKER_SECRET` مشترك — مجموعة `warehouse_ops`.** القيمة **واحدة**
+> في `order-printer-worker` و`orders-packing-checker-worker` و
+> `order-item-remover-worker` (`ecommoda-constants` §6 · مجموعات السر).
+> **متغيّرهاش في أداة واحدة** — التغيير بيكسر الباقي. التدوير بيمسّ التلاتة
+> مع بعض + Promote للتلاتة + حقل السر في الهب.
+> `employees-admin-panel-worker` **مستثنى صراحةً** — أداة إدارية وسرها فريد للأبد.
+> البصمة القصيرة في `?action=diag` بتثبت إن التلاتة على نفس القيمة (الطول لوحده مابيثبتش).
 
 تصنيف الـ `env.*` (`ecommoda-tool-migration-playbook` §4-أ-٢):
 
@@ -242,6 +249,12 @@ SELECT type, COUNT(*) AS n, MAX(timestamp) AS last_ts FROM logs WHERE tool = 'or
 
 ## فخاخ الأداة دي
 
+- **`WORKER_SECRET` بتاع الأداة دي مش بتاعها لوحدها** — مجموعة `warehouse_ops`
+  (فوق). تدويره لازم يحصل في التلات Workers مع بعض + Promote للتلاتة، وإلا
+  الأداة اللي اتغيّر سرها بترفض السر القديم المخزّن في متصفح المخزن وترجّع
+  `401` برسالة مضلّلة («تعذّر تحميل قائمة الموظفين») — `isConfigured()` بيفحص
+  الطول بس، فالسر البايت شكله «مضبوط». البصمة في `diag` هي اللي بتفرّق.
+
 - **`returns` كانت `first: 3` بدون `pageInfo`** — دورة رابعة كانت بتتقص
   **بصمت**. من v2.1.0 بقت `first: 10` و`returnLineItems`/`exchangeLineItems`
   `first: 50` + `pageInfo` على التلاتة، والقصّ بيرجع في `truncatedReturns`.
@@ -301,9 +314,9 @@ git show 0f99338:Indexv-iframe.html
 | ecommoda-worker-builder | v2.0.0 |
 | ecommoda-html-builder | v6.3.0 |
 | ecommoda-order-lifecycle | v1.3.0 |
-| ecommoda-constants | v1.4.3 |
+| ecommoda-constants | v1.6.0 (مجموعات السر §6) |
 
-آخر مطابقة: 05-09-2026 · `index.js` v2.2.0 · `index.html` v3.4.0
+آخر مطابقة: 05-09-2026 · `index.js` v2.2.1 · `index.html` v3.4.0
 
 ## مسائل مفتوحة
 

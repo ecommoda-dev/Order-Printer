@@ -70,7 +70,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.2.0';
+const WORKER_VERSION = '2.2.1';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -188,6 +188,20 @@ function assertEnv(env, ...groups) {
       `Dashboard → Settings → Variables ثم Promote النسخة. (شغّل ?action=diag)`
     );
   }
+}
+
+// ─── §HELPERS::secretFingerprint — بصمة قصيرة للسر ───
+// الغرض: التأكد إن كل أعضاء مجموعة `warehouse_ops` شايلين **نفس** القيمة
+// (order-printer-worker · orders-packing-checker-worker · order-item-remover-worker).
+// الطول لوحده مش كافي — سرّين مختلفين بنفس الطول شكلهم واحد في diag.
+// ⚠️ ٨ خانات hex من SHA-256 لسر عشوائي ٣٢ بايت مش قابلة لاسترجاع القيمة.
+//    وبتكشف بالظبط الحالتين اللي بتوقّعوا الناس:
+//    ① عضو لسه على السر القديم   ② السر اتغيّر والـ Promote ما اتعملش
+async function secretFingerprint(secret) {
+  if (!secret) return null;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+  return [...new Uint8Array(buf)].slice(0, 4)
+    .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1187,9 +1201,12 @@ async function runDiag(request, env) {
 
   // R6: WORKER_SECRET — الاسم والطول بس، **مش القيمة**. الطول بيكشف المسافة
   // المخفية اللي بتخلي المقارنة تفشل بلا سبب ظاهر.
+  // البصمة بتثبت إن أعضاء مجموعة `warehouse_ops` على **نفس** القيمة —
+  // الطول لوحده مابيثبتش حاجة. اختلافها في أي أداة = المجموعة مكسورة.
+  const secretFp = await secretFingerprint(env.WORKER_SECRET);
   push('WORKER_SECRET', !!env.WORKER_SECRET,
     env.WORKER_SECRET
-      ? `مضبوط (${String(env.WORKER_SECRET).length} حرف)`
+      ? `مضبوط (${String(env.WORKER_SECRET).length} حرف) · بصمة ${secretFp} · مجموعة warehouse_ops`
       : 'غايب — أي طلب بـ "Bearer undefined" كان هيعدّي المصادقة قبل حارس R6');
 
   // D1
