@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.1.0)
-// skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 03-09-2026
+// EcomModa — Order Printer (v2.2.0)
+// skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 05-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
 // Subdomain: order-printer-worker.ecommoda-dev.workers.dev
@@ -23,6 +23,19 @@
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.2.0):
+//   - 🟠 R15 — دفعة طباعة كبيرة كانت بتفشل كلها برسالة CORS. الواجهة بتبعت
+//     نداء `/invoice` لكل أوردر **في نفس اللحظة** بلا أي حد تزامن، فدفعة ٥٠
+//     أوردر = ٥٠ OPTIONS + ٥٠ POST متزامنين، وكل POST بياخد توكن OAuth جديد.
+//     الحد نفسه اتحط في الواجهة (v3.4.0)؛ الجزء بتاع الـ Worker هنا:
+//       ① كاش للتوكن في ذاكرة الـ isolate + وعد مشترك يمنع تكرار النداء —
+//          دفعة ٥٠ كانت ١٠٠ نداء OAuth، بقت نداء أو تلاتة.
+//       ② `Access-Control-Max-Age` — كاش الـ preflight كان ٥ ثواني (افتراضي
+//          كروم) فكل POST كان بيجرّ OPTIONS معاه. دلوقتي استئذان واحد للدفعة.
+//       ③ 401 من شوبيفاي بقى بيلغي التوكن المتكاش ويعيد المحاولة **مرة واحدة**
+//          — من غيره توكن ملغي كان هيفضل في الكاش لحد ما TTL يخلص.
+//     (بلاغ المخزن 05-09-2026 · Abo_Selim · دفعة ٥٠ أوردر · صفر صف في D1)
 //
 // CHANGES (v2.1.0):
 //   - 🟠 R7 — الفاتورة بقت تقرا **أحدث دورة** إرجاع/استبدال بس بدل التجميع
@@ -57,7 +70,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.1.0';
+const WORKER_VERSION = '2.2.0';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -125,6 +138,14 @@ const ALLOWED_ORIGINS = [
   'https://ecommoda-dev.github.io',
 ];
 
+// ⚠️ `Access-Control-Max-Age` مش تحسين رفاهية (v2.2.0 · R15).
+// كل POST هنا بيحمل `Authorization` + `Content-Type: application/json`، يعني
+// المتصفح **ملزم** يبعت OPTIONS preflight الأول. من غير الترويسة دي كاش الـ
+// preflight في كروم بيبقى ٥ ثواني (الافتراضي)، واللي عمليًا مابينفعش مع رشقة
+// متوازية — دفعة ٥٠ أوردر كانت بتطلّع ٥٠ OPTIONS + ٥٠ POST = ١٠٠ طلب متزامن.
+// كروم بيسقّف القيمة دي عند ساعتين مهما كتبنا، وفايرفوكس عند ٢٤ ساعة.
+const CORS_MAX_AGE = '86400';
+
 function getCORS(request) {
   const origin  = request?.headers?.get('Origin') || '';
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -132,6 +153,7 @@ function getCORS(request) {
     'Access-Control-Allow-Origin':  allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age':       CORS_MAX_AGE,
     'Vary': 'Origin',
   };
 }
@@ -363,7 +385,34 @@ function logParamsFrom(url, tool) {
 // ══════════════════════════════════════════════════════════════
 // §SHOPIFY
 // ══════════════════════════════════════════════════════════════
-async function getAccessToken(env) {
+// ─── §SHOPIFY::getAccessToken — كاش في ذاكرة الـ isolate (v2.2.0 · R15) ───
+// قبل كده كل نداء على الأداة كان بياخد توكن جديد من شوبيفاي. دفعة طباعة ٥٠
+// أوردر = ٥٠ توكن لـ /invoice + ٥٠ لـ /track = **١٠٠ نداء OAuth زيادة** على
+// شوبيفاي في تانية واحدة، وكلهم بيرجّعوا نفس القيمة.
+//
+// الكاش هنا **في ذاكرة الـ isolate بس** — مش KV ومش Cache API:
+//   - مفيش binding جديد ومفيش تغيير في wrangler.toml
+//   - التوكن عمره ما بيتكتب على أي تخزين دائم ولا بيخرج بره الـ isolate
+//   - كلاودفلير ممكن تشغّل أكتر من isolate تحت الحمل، فالنتيجة "نداء أو تلاتة"
+//     بدل ١٠٠ — مش نداء واحد مضمون رياضيًا، وده كافي تمامًا للغرض
+//
+// ⚠️ `_tokenInFlight` مش زيادة: من غيرها الـ ٥٠ نداء اللي بيوصلوا **مع بعض**
+// لنفس الـ isolate هيلاقوا الكاش فاضي كلهم في نفس اللحظة ويطلبوا توكن كل واحد
+// لوحده — يعني نفس المشكلة جوّه isolate واحد. الوعد المشترك بيخلّيهم يستنّوا
+// أول نداء بدل ما يكرّروه.
+let _tokenCache    = null;   // { token, expiresAt }
+let _tokenInFlight = null;   // Promise<string> — نداء شغّال دلوقتي
+
+const TOKEN_SAFETY_MS      = 5 * 60 * 1000;    // بنسيب هامش قبل الانتهاء الحقيقي
+const TOKEN_FALLBACK_TTL_MS = 60 * 60 * 1000;  // لو شوبيفاي ما بعتتش expires_in
+
+// بيتنادى من shopifyGQL على 401 — توكن ملغي مايفضلش في الكاش لحد ما TTL يخلص
+function invalidateAccessToken() {
+  _tokenCache    = null;
+  _tokenInFlight = null;
+}
+
+async function fetchAccessToken(env) {
   const resp = await fetch(`https://${env.SHOP_DOMAIN}/admin/oauth/access_token`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -376,7 +425,34 @@ async function getAccessToken(env) {
   if (!resp.ok) throw new Error(`OAuth failed: ${resp.status}`);
   const data = await resp.json();
   if (!data.access_token) throw new Error('No access_token in response');
-  return data.access_token;
+
+  const ttlMs = Number.isFinite(data.expires_in) && data.expires_in > 0
+    ? data.expires_in * 1000
+    : TOKEN_FALLBACK_TTL_MS;
+
+  return {
+    token:     data.access_token,
+    // Math.max عشان توكن قصير العمر (أقل من الهامش) مايبقاش منتهي وهو لسه جديد
+    expiresAt: Date.now() + Math.max(ttlMs - TOKEN_SAFETY_MS, 30 * 1000),
+  };
+}
+
+async function getAccessToken(env) {
+  if (_tokenCache && _tokenCache.expiresAt > Date.now()) return _tokenCache.token;
+  if (_tokenInFlight) return _tokenInFlight;
+
+  _tokenInFlight = (async () => {
+    const fresh = await fetchAccessToken(env);
+    _tokenCache = fresh;
+    return fresh.token;
+  })();
+
+  try {
+    return await _tokenInFlight;
+  } finally {
+    // بيتصفّر في الحالتين — نجح (الكاش اتملى) أو فشل (المحاولة الجاية تعيد)
+    _tokenInFlight = null;
+  }
 }
 
 // ─── §SHOPIFY::shopifyGQL — العقد الإلزامي، منسوخة كما هي ───
@@ -389,6 +465,7 @@ async function getAccessToken(env) {
 async function shopifyGQL(env, token, query, variables = {}, opName = 'shopify') {
   const MAX_ATTEMPTS = 3;
   let lastErr = null;
+  let tokenRefreshed = false;   // v2.2.0 · R15 — مرة واحدة بس، مش لوب
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     let resp, text;
@@ -403,6 +480,23 @@ async function shopifyGQL(env, token, query, variables = {}, opName = 'shopify')
       lastErr = new Error(`${opName}: فشل الاتصال بشوبيفاي — ${e.message}`);
       if (attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, 400 * attempt)); continue; }
       throw lastErr;
+    }
+
+    // ⚠️ 401 بقى ليه فرع خاص من v2.2.0 (R15) — لأن التوكن بقى متكاش.
+    // من غير ده: توكن اتلغى أو اتغيّر من ناحية شوبيفاي بيفضل في الكاش لحد ما
+    // الـ TTL يخلص، فكل نداء في الفترة دي بيفشل بنفس الشكل والأداة تبان واقعة.
+    // بنلغي الكاش، نجيب توكن جديد، ونعيد **مرة واحدة** — لو رد 401 تاني يبقى
+    // المشكلة في CLIENT_ID/CLIENT_SECRET أو الصلاحيات، مش في توكن بايت.
+    if (resp.status === 401 && !tokenRefreshed && attempt < MAX_ATTEMPTS) {
+      tokenRefreshed = true;
+      invalidateAccessToken();
+      lastErr = new Error(`${opName}: شوبيفاي ردّت HTTP 401 — ${text.slice(0, 180)}`);
+      try {
+        token = await getAccessToken(env);
+        continue;
+      } catch (e) {
+        throw new Error(`${opName}: شوبيفاي ردّت 401 وتجديد التوكن فشل — ${e.message}`);
+      }
     }
 
     if (!resp.ok) {
