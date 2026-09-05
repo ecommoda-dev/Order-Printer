@@ -314,7 +314,7 @@ git show 0f99338:Indexv-iframe.html
 | ecommoda-worker-builder | v2.0.0 |
 | ecommoda-html-builder | v6.3.0 |
 | ecommoda-order-lifecycle | v1.3.0 |
-| ecommoda-constants | v1.4.3 |
+| ecommoda-constants | v1.6.0 (مجموعات السر §6) |
 
 آخر مطابقة: 05-09-2026 · `index.js` v2.2.1 · `index.html` v3.4.0
 
