@@ -40,10 +40,11 @@ tool  : order_printer      · type : S1 · S2 · login · logout
 tool  : metafields_change  · type : update      ← الأداة بقت كاتب تاني تحت الصف ده
 ```
 
-🔴 **بند تسجيل مفتوح في `ecommoda-constants` §7 — لازم يتقفل:**
-صف Order Printer مسجّل `S1 · S2` بس. النسخة دي بتكتب كمان `login` و`logout`،
-وبقت **كاتب جديد** تحت `metafields_change` / `update` بمفتاح إسناد
-`extra.source = "order_printer"`. التلات بنود دول لازم يتضافوا في §7.
+✅ **مسجّلة بالكامل في `ecommoda-constants` §7** — اتسجّلت في المهارة **v1.4.4**
+(04-09-2026) واتأكّدنا منها على **v1.5.2** يوم 05-09-2026: صف الأداة بقى
+`order_printer` = `S1 · S2 · login · logout`، والكتابة تحت `metafields_change` /
+`update` بمفتاح إسناد `extra.source = "order_printer"` مسجّلة في **جدول كُتّاب
+`metafields_change`** تحت §7. مفيش شغل مطلوب على المهارة للبند ده.
 
 ⚠️ **عمود `order_id`:** الصفوف الجديدة بترجّع **الرقم المجرد** (`5678901234567`)
 تنفيذًا لقاعدة الـ numeric order ID. الصفوف التاريخية (قبل v2.0.0) فيها الـ GID
@@ -306,8 +307,6 @@ git show 0f99338:Indexv-iframe.html
 
 ## مسائل مفتوحة
 
-- 🔴 **تسجيل `login` · `logout` · الكتابة تحت `metafields_change` في
-  `ecommoda-constants` §7** — البند ده **قبل** أي نشر (Rule 7). فوق التفاصيل.
 - ⏳ **بند للمهارة مش للأداة:** قاعدة «السبب مع كتابة `manual_status`»
   (`ecommoda-order-lifecycle` §1.5) محتاجة **استثناء مكتوب للأدوات
   الأوتوماتيكية**. القاعدة اتكتبت للتغيير اليدوي (Order Status Updater)، وأداة
@@ -336,6 +335,6 @@ git show 0f99338:Indexv-iframe.html
 - ~~**R12** — `compatibility_date` غير موحّد~~ — اتحرّك لـ 2026-09-03 بعد فحص
   الأعلام على الكود الفعلي (القسم فوق). **مش** «فاتساب» زي ما كان مكتوب هنا.
 
-آخر تحديث: 05-09-2026 — 08:30
+آخر تحديث: 05-09-2026 — 11:50
 
 </div>
