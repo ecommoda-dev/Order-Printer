@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<!-- skills: html-builder v6.3.0 · worker-builder v2.0.0 · order-lifecycle v1.3.0 — 03-09-2026 -->
+<!-- skills: html-builder v6.3.0 · worker-builder v2.0.0 · order-lifecycle v1.3.0 — 05-09-2026 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>طباعة أوردرات القاهرة</title>
@@ -1360,7 +1360,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>§SHELL-JS</code> — النسخ · حارس الـ Worker · التوست · <code>playBeep</code> · <code>runDiag</code> · Freeze on Scroll</li>
             <li><code>§AUTH-JS</code> — ماكينة حالات الدخول الأربعة</li>
             <li><code>§TABLE-JS</code> — منطق عام للقسمين: multi-select · الفترة · الترتيب · الـ chips</li>
-            <li><code>§TOOL-JS</code> — تحميل الأوردرات · الاختيار · الطباعة · نافذة النتيجة</li>
+            <li><code>§TOOL-JS</code> — تحميل الأوردرات · الاختيار · <code>mapLimit</code> (حد التزامن) · الطباعة · نافذة النتيجة</li>
             <li><code>§LOG-JS</code> — تحميل السجل · KPIs · التصدير</li>
             <li><code>§INVOICE-JS</code> — رسم فواتير S1/S2 + الطباعة عبر iframe</li>
           </ul>
@@ -1375,6 +1375,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>msState</code> — حالة كل فلاتر التابين بمفاتيح مسبوقة بـ <code>p</code> (طباعة) أو <code>l</code> (سجل)</li>
             <li><code>TYPE_LABEL</code> — تسميات العرض بس (عادي / استبدال/استرجاع). قيم D1 وعقد الـ Worker بتفضل <code>S1</code>/<code>S2</code></li>
             <li><code>sec.print</code> / <code>sec.log</code> — حالة البحث والتاريخ والترتيب لكل قسم على حدة</li>
+            <li><code>PRINT_CONCURRENCY = 4</code> — أقصى عدد نداءات <code>/invoice</code> أو <code>/track</code> شغّالة في نفس الوقت. <strong>مش ضبط أداء</strong> — هو اللي بيمنع فشل الدفعة كلها (R15)</li>
           </ul>
 
           <h4>NOTES / QUIRKS</h4>
@@ -1385,6 +1386,9 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li>مستند الـ <code>iframe</code> بتاع الفاتورة مالوش وصول لـ <code>:root</code>، فألوانه حرفية — استثناء تقني موثّق من Standards #35.</li>
             <li>نافذة نتيجة الطباعة بتعرض <strong>العدد بس</strong> لما كله ينجح؛ تفاصيل الأوردرات بتتبني بس لو <code>warning</code> أو <code>error</code> — ومع ذلك العدّادات التلاتة بتتعرض دايمًا، فالصفر الأصفر/الأحمر بيفضل ظاهر ومش مستنتَج.</li>
             <li>فلترة الجدولين client-side على البيانات المحمّلة — الأداة بتحمّل السجل كله عشان تبني عدّاد الطباعة، فمفيش pagination من السيرفر.</li>
+            <li><strong>الطباعة بتمشي بحد تزامن ٤ (<code>mapLimit</code>)، مش <code>Promise.all</code> على الدفعة كلها.</strong> قبل v3.4.0 دفعة ٥٠ أوردر كانت بتولّد ٥٠ نداء متزامن، وأي واحد يفشل يلغي الخمسين برسالة CORS واحدة — صفر فاتورة وصفر صف في D1. لو رجّعت <code>Promise.all</code>، الباج بيرجع معاها.</li>
+            <li>فشل تحضير فاتورة أوردر <strong>مابيوقّفش</strong> الدفعة — الأوردر بيترجع كصف <code>error</code> في نافذة النتايج جنب نتايج التسجيل. الصفوف دي <strong>مالهاش</strong> <code>logged</code> عن قصد: مفيش أي فعل حصل، فتحذير «تمت لكن ما اتسجلتش» هيبقى مضلّل.</li>
+            <li><code>MIN_WORKER_VERSION</code> فضلت <code>2.1.0</code> مع إن الـ Worker بقى <code>2.2.0</code> — الواجهة <strong>مش</strong> معتمدة على أي حاجة جديدة فيه (كاش التوكن و<code>Access-Control-Max-Age</code> الاتنين شفافين للواجهة). ترفعها من غير سبب = تحذير كاذب عند أي rollback مشروع.</li>
           </ul>
         </div>
       </details>
@@ -1404,8 +1408,33 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.2.0</span>
+          <span class="cl-ver">v3.4.0</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">05-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span><strong>دفعة طباعة كبيرة كانت بتفشل كلها.</strong> الأداة كانت بتبعت نداء لكل أوردر في نفس اللحظة بلا أي حد — دفعة ٥٠ أوردر = ٥٠ نداء متزامن — و<strong>أي</strong> نداء يفشل كان بيلغي الدفعة كلها برسالة «تعذّر الوصول للـ Worker». دلوقتي ٤ نداءات في المرة.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>أوردر واحد يفشل <strong>مابيوقّفش</strong> الباقي — بيتطبع اللي نجح، والفاشل بيظهر <strong>باسمه ورقمه</strong> في نافذة النتايج عشان يتعاد لوحده.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>شاشة التحميل بتعرض تقدّم الدفعة («جاري تحضير الفواتير... 12/50») بدل رسالة ثابتة.</span></div>
+          <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span>لو فشل تحضير <strong>كل</strong> الفواتير، مفيش طباعة ومفيش تسجيل، والنافذة بتعرض الأوردرات كلها بسبب الفشل.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.3.0</span>
+          <span class="cl-date">03-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>تنبيه للمغلِّف لو الأوردر عنده أكتر من دورة إرجاع/استبدال — الفاتورة بتعرض <strong>أحدث</strong> دورة بس (R7).</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>تنبيه لو دورات الإرجاع/الاستبدال اتقصّت في الاستعلام، فممكن يكون فيه بنود مرتجعة مش ظاهرة في الفاتورة (R8).</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>الحد الأدنى لنسخة الـ Worker بقى <code>2.1.0</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.2.0</span>
           <span class="cl-date">03-09-2026</span>
         </div>
         <div class="cl-list">
@@ -1542,11 +1571,11 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.3.0";
+const TOOL_VERSION = "3.4.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
-const MIN_WORKER_VERSION = "2.1.0";
+const MIN_WORKER_VERSION = "2.1.0";   // ⚠️ مش 2.2.0 — تحسينات v2.2.0 (كاش التوكن · Max-Age) شفافة للواجهة
 let workerVersion = null;
 
 // مقارنة رقمية — مش نصية. "10" أصغر من "9" لو اتقارنوا كنص.
@@ -2175,6 +2204,30 @@ let filteredOrders = [];
 let selectedIds    = new Set();
 let printCountsMap = {};
 
+// ─── §TOOL-JS::mapLimit ───
+// تشغيل مهام بحد تزامن ثابت — البديل المعتمد لـ `Promise.all` على المصفوفة كلها.
+// فرقين جوهريين، والاتنين مقصودين (v3.4.0 · R15):
+//   ① بحد أقصى `limit` نداء شغّالين في نفس الوقت — مش كلهم مع بعض
+//   ② عنصر بيفشل **مابيلغيش** الباقي — كل عنصر بيرجع { ok:true, value }
+//      أو { ok:false, error }، زي `allSettled` بس بحد تزامن
+// الترتيب في النتيجة = ترتيب المدخلات مهما خلص أنهي واحد الأول، عشان نقدر
+// نقابل كل نتيجة بالأوردر بتاعها بالـ index.
+async function mapLimit(items, limit, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  const lanes = Array.from(
+    { length: Math.max(1, Math.min(limit, items.length)) },
+    async () => {
+      for (let i = next++; i < items.length; i = next++) {
+        try      { results[i] = { ok: true,  value: await worker(items[i], i) }; }
+        catch (e){ results[i] = { ok: false, error: e }; }
+      }
+    }
+  );
+  await Promise.all(lanes);
+  return results;
+}
+
 function showPrint(id) {
   ["printLoadingState","printErrorState","printDashboard"].forEach(s => {
     document.getElementById(s).style.display = s === id ? (id === "printDashboard" ? "block" : "flex") : "none";
@@ -2334,41 +2387,86 @@ function showConfirmReprint(alreadyPrinted, allSelected) {
 }
 function closeConfirm() { document.getElementById("confirmOverlay").classList.remove("open"); }
 
+// حد التزامن لنداءات الطباعة (`/invoice` و `/track`).
+// ⚠️ الرقم ده **مش** ضبط أداء — هو اللي بيمنع فشل الدفعة كلها. نفس الدرس
+// الموجود في Ready-to-Pack / Pack Checker (`S2_CONCURRENCY = 4`).
+const PRINT_CONCURRENCY = 4;
+
 async function executePrint(selectedOrders) {
   if (!currentEmployee) { showToast("سجّل الدخول أولاً", "error"); return; }
-  showPrintLoading(`جاري تحضير ${selectedOrders.length.toLocaleString("en-US")} فاتورة...`);
+  const total = selectedOrders.length;
+  showPrintLoading(`جاري تحضير ${total.toLocaleString("en-US")} فاتورة...`);
   try {
-    const invoices = await Promise.all(
-      selectedOrders.map(o => apiPath("/invoice", { orderId: o.id }).then(d => {
-        if (d.truncatedLineItems) {
-          showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
-        }
-        // R8 — دورات إرجاع/استبدال اتقصّت. نفس فلسفة truncatedLineItems:
-        //      القصّ لازم يبان، مايعدّيش صامت.
-        if (d.truncatedReturns) {
-          showToast(`⚠️ ${d.invoice.name}: دورات الإرجاع/الاستبدال أكتر من اللي الاستعلام بيجيبه — ` +
-                    `ممكن يكون فيه بنود مرتجعة مش ظاهرة في الفاتورة`, "warn", 9000);
-        }
-        // R7 — الفاتورة بتعرض **أحدث دورة** بس. لو الأوردر عنده أكتر من
-        //      دورة، المغلِّف لازم يعرف عشان يراجع بدل ما يفترض إنها الكل.
-        if (d.multiCycle) {
-          showToast(`ℹ️ ${d.invoice.name}: الأوردر ده عنده ${d.cycleCount} دورات إرجاع/استبدال — ` +
-                    `الفاتورة بتعرض **أحدث** دورة بس. راجعها.`, "warn", 9000);
-        }
-        return { ...d.invoice, multiCycle: d.multiCycle, cycleCount: d.cycleCount };
-      }))
-    );
+    // ① الفواتير — بحد تزامن، وفشل أوردر مايوقّفش الباقي.
+    //    قبل v3.4.0 كان `Promise.all` على المصفوفة كلها: ٥٠ أوردر = ٥٠ نداء
+    //    متزامن، و**أي** واحد يفشل يلغي الخمسين. المخزن شاف ده يوم 05-09-2026
+    //    كرسالة CORS واحدة، صفر فاتورة، وصفر صف في D1.
+    let fetched = 0;
+    const settled = await mapLimit(selectedOrders, PRINT_CONCURRENCY, async (o) => {
+      const d = await apiPath("/invoice", { orderId: o.id });
+      fetched++;
+      showPrintLoading(`جاري تحضير الفواتير... ${fetched.toLocaleString("en-US")}/${total.toLocaleString("en-US")}`);
+
+      if (d.truncatedLineItems) {
+        showToast(`⚠️ ${d.invoice.name}: الفاتورة فيها أكتر من ٥٠ بند — البنود الزيادة مش هتتطبع`, "warn", 8000);
+      }
+      // R8 — دورات إرجاع/استبدال اتقصّت. نفس فلسفة truncatedLineItems:
+      //      القصّ لازم يبان، مايعدّيش صامت.
+      if (d.truncatedReturns) {
+        showToast(`⚠️ ${d.invoice.name}: دورات الإرجاع/الاستبدال أكتر من اللي الاستعلام بيجيبه — ` +
+                  `ممكن يكون فيه بنود مرتجعة مش ظاهرة في الفاتورة`, "warn", 9000);
+      }
+      // R7 — الفاتورة بتعرض **أحدث دورة** بس. لو الأوردر عنده أكتر من
+      //      دورة، المغلِّف لازم يعرف عشان يراجع بدل ما يفترض إنها الكل.
+      if (d.multiCycle) {
+        showToast(`ℹ️ ${d.invoice.name}: الأوردر ده عنده ${d.cycleCount} دورات إرجاع/استبدال — ` +
+                  `الفاتورة بتعرض **أحدث** دورة بس. راجعها.`, "warn", 9000);
+      }
+      return { ...d.invoice, multiCycle: d.multiCycle, cycleCount: d.cycleCount };
+    });
+
+    // ② الأوردرات اللي فشل تحضير فاتورتها بتترجع بالاسم في نافذة النتايج —
+    //    مش بتختفي ومش بتوقّف الباقي. مفيش `logged` هنا عن قصد: مفيش أي فعل
+    //    حصل أصلًا، فتحذير "تمت لكن ما اتسجلتش" هيبقى مضلّل.
+    const invoices   = [];
+    const failedRows = [];
+    settled.forEach((r, i) => {
+      if (r.ok) { invoices.push(r.value); return; }
+      const o = selectedOrders[i];
+      failedRows.push({
+        status: "error", orderNumber: o.name, orderId: o.orderId, type: o.type,
+        actions: [], warnings: [],
+        errors: [`تعذّر تحضير الفاتورة — ${r.error?.message || String(r.error)}`],
+      });
+    });
+
+    if (!invoices.length) {
+      hidePrintLoading();
+      renderTrackResults(failedRows);
+      showToast(`فشل تحضير كل الفواتير (${total.toLocaleString("en-US")}) — مفيش أي طباعة ومفيش أي تسجيل`, "error", 8000);
+      return;
+    }
+
     showPrintLoading("جاري رسم الفواتير...");
     const invoiceHTML = invoices.map(inv => inv.type === "S2" ? renderS2Invoice(inv) : renderS1Invoice(inv)).join("");
 
-    // ⚠️ التسجيل مش بـ .catch(() => {}) — فشل التسجيل لازم يوصل للموظف.
-    // والنتيجة بتتقرا من الـ Worker كما هي: success | warning | error.
-    const tracked = await Promise.all(invoices.map(inv =>
-      apiPath("/track", { orderId: inv.id, orderNumber: inv.name, type: inv.type, employee: currentEmployee.username })
-        .then(res => ({ ...res, orderNumber: res.orderNumber || inv.name, orderId: res.orderId || inv.orderId, type: inv.type }))
-        .catch(err => ({ status:"error", orderNumber: inv.name, orderId: inv.orderId, type: inv.type,
-                         actions: [], warnings: [], errors: [err.message], logged: false }))
-    ));
+    // ③ التسجيل — مش بـ .catch(() => {}). فشل التسجيل لازم يوصل للموظف،
+    //    والنتيجة بتتقرا من الـ Worker كما هي: success | warning | error.
+    let trackedCount = 0;
+    const trackSettled = await mapLimit(invoices, PRINT_CONCURRENCY, async (inv) => {
+      const res = await apiPath("/track", {
+        orderId: inv.id, orderNumber: inv.name, type: inv.type, employee: currentEmployee.username,
+      });
+      trackedCount++;
+      showPrintLoading(`جاري تسجيل الطباعة... ${trackedCount.toLocaleString("en-US")}/${invoices.length.toLocaleString("en-US")}`);
+      return { ...res, orderNumber: res.orderNumber || inv.name, orderId: res.orderId || inv.orderId, type: inv.type };
+    });
+    const tracked = trackSettled.map((r, i) => {
+      if (r.ok) return r.value;
+      const inv = invoices[i];
+      return { status: "error", orderNumber: inv.name, orderId: inv.orderId, type: inv.type,
+               actions: [], warnings: [], errors: [r.error?.message || String(r.error)], logged: false };
+    });
 
     showPrintLoading("جاري فتح نافذة الطباعة...");
     await printViaIframe(invoiceHTML, invoices.length);
@@ -2379,7 +2477,8 @@ async function executePrint(selectedOrders) {
     }
     clearSelection();
     hidePrintLoading();
-    renderTrackResults(tracked);   // بعد إخفاء شاشة التحميل — الاتنين على z-index 600
+    // الفشل في تحضير الفاتورة والفشل في التسجيل الاتنين بيظهروا في نفس النافذة
+    renderTrackResults([...failedRows, ...tracked]);
     await loadOrders(true);
     if (logsLoaded) loadLogs();
   } catch (err) {
