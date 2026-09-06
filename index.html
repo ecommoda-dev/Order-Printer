@@ -555,6 +555,37 @@ body {
   padding: 10px 12px; font-size: 13px; display: flex; align-items: center; justify-content: space-between;
 }
 .confirm-order-meta { color: var(--text-secondary); font-size: 12px; }
+/* ══════════════════════════════════════════════════════════════
+   §PREPRINT-GATE — بوابة المراجعة قبل الطباعة
+   نافذة **واحدة** بدل تلات نوافذ متتالية. أوردر واقع في أكتر من فئة
+   بيتعرض **مرة واحدة** تحت أعلى فئة، وشاراته التانية جنبه.
+   ══════════════════════════════════════════════════════════════ */
+.pg-body { display:flex; flex-direction:column; gap:12px; max-height:58vh; overflow-y:auto; margin:2px 0 8px; }
+.pg-sec { border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); overflow:hidden; }
+.pg-sec.red   { border-color: var(--red-border);   }
+.pg-sec.amber { border-color: var(--amber-border); }
+.pg-sec-head { display:flex; align-items:center; gap:8px; padding:10px 12px; font-size:13px; font-weight:800; background:var(--surface-2); color:var(--text-primary); }
+.pg-sec.red   .pg-sec-head { background:var(--red-light);   color:var(--red-dark);   }
+.pg-sec.amber .pg-sec-head { background:var(--amber-light); color:var(--amber-dark); }
+.pg-sec-count { margin-right:auto; font-weight:800; }
+.pg-list { display:flex; flex-direction:column; gap:6px; padding:10px 12px; background:var(--surface); }
+.pg-row { display:flex; align-items:flex-start; gap:9px; padding:9px 10px; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); font-size:13px; font-weight:700; line-height:1.6; }
+.pg-row.need { cursor:pointer; border-color:var(--red-border); background:var(--red-light); }
+.pg-row.need:has(input:checked) { border-color:var(--green); background:var(--green-light); color:var(--green-dark); }
+.pg-row input[type=checkbox] { width:17px; height:17px; margin-top:2px; accent-color:var(--green); cursor:pointer; flex-shrink:0; }
+.pg-row-main { display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+.pg-row-top  { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.pg-meta { color:var(--text-secondary); font-size:12px; font-weight:600; }
+.pg-note { font-size:12.5px; font-weight:600; color:var(--text-secondary); padding:0 12px 10px; background:var(--surface); }
+.pg-ok   { font-size:13px; font-weight:700; color:var(--green-dark); padding:10px 12px; background:var(--green-light); border:1.5px solid var(--green-border); border-radius:var(--radius-sm); }
+.pg-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:10px; }
+/* شارات التنبيه — في الجدول وفي البوابة، نفس الشكل بالظبط */
+.flag-chip   { display:inline-flex; align-items:center; gap:4px; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:800; white-space:nowrap; }
+.flag-void   { background:var(--red-light);    color:var(--red-dark);    border:1px solid var(--red-border);    }
+.flag-packed { background:var(--purple-light); color:var(--purple-dark); border:1px solid var(--purple-border); }
+.flag-recent { background:var(--amber-light);  color:var(--amber-dark);  border:1px solid var(--amber-border);  }
+.kpi-sub { font-size:11px; font-weight:800; color:var(--red-dark); margin-top:5px; }
+.cell-sub { display:block; font-size:11px; font-weight:600; color:var(--text-secondary); margin-top:2px; }
 .confirm-question { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 12px; }
 
 /* ── Print loading overlay ── */
@@ -866,6 +897,9 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <div class="kpi-card">
         <div class="kpi-value" id="kpiS1">0</div>
         <div class="kpi-label">عادي</div>
+        <!-- 🔴 سطر التنبيه — بيظهر بس لما يكون فيه فواتير لاغية.
+             مش كارت جديد عن قصد: الصف اتنين كارت وخلاص. -->
+        <div class="kpi-sub" id="kpiS1Void" style="display:none;"></div>
       </div>
       <div class="kpi-card amber">
         <div class="kpi-value" id="kpiS2">0</div>
@@ -963,6 +997,23 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             </div>
           </div>
 
+
+          <!-- 🔴 فلتر التنبيهات — عشان الموظف يقدر يخلّص قطع الفواتير اللاغية
+               دفعة واحدة بدل ما يتفاجأ بيها وسط دفعة كبيرة. -->
+          <div class="flt-g">
+            <span class="flt-label">تنبيهات</span>
+            <div class="ms-wrap" id="msWrap-pFlag">
+              <button class="ms-btn" id="msBtn-pFlag" onclick="msToggle('pFlag')"><span id="msBtnLabel-pFlag">الكل</span><span class="ms-arrow">▾</span></button>
+              <div class="ms-menu" id="msMenu-pFlag">
+                <div class="ms-ftr-top"><button class="ms-ftr-clear" onclick="msClear('pFlag')">مسح الاختيار</button><span class="ms-ftr-count" id="msFtrCount-pFlag"></span></div>
+                <div class="ms-selectall-row" onclick="msToggleSelectAll('pFlag')">
+                  <input type="checkbox" id="msSelectAll-pFlag" onclick="event.stopPropagation()" onchange="msToggleSelectAll('pFlag', this.checked)">
+                  <span id="msSelectAllLabel-pFlag">تحديد الكل</span>
+                </div>
+                <div class="ms-list" id="msList-pFlag"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- صف 2: بحث ← فترة سريعة ← من ← إلى -->
@@ -1005,6 +1056,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <div class="ms-chips-row" id="chipsRow-pType"></div>
         <div class="ms-chips-row" id="chipsRow-pStatus"></div>
         <div class="ms-chips-row" id="chipsRow-pCount"></div>
+        <div class="ms-chips-row" id="chipsRow-pFlag"></div>
       </div>
 
       <div class="section-divider"></div>
@@ -1264,23 +1316,28 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   </div>
 </div>
 
-<div class="overlay" id="confirmOverlay">
+<!-- ══════════════════════════════════════════════════════════════
+     🔴 §PREPRINT-GATE — بوابة مراجعة واحدة قبل الطباعة
+     بتجمع تلات حُرّاس كانوا تلات نوافذ متتالية:
+       ① فاتورة لاغية (أوردر رجع للطابور بعد ما اتطبع)  ← تأكيد إلزامي
+       ② اتطبع خلال آخر ٣٠ دقيقة                        ← تنبيه
+       ③ سبق طباعته قبل كده                             ← تنبيه
+     ⚠️ ثلاث نوافذ ورا بعض = الموظف بيدوس Enter من غير ما يقرا،
+        والحارس يبقى ديكور. (قرار أحمد 06-09-2026)
+     ══════════════════════════════════════════════════════════════ -->
+<div class="overlay" id="gateOverlay">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">⚠️ تحذير — طباعة مكررة</span>
-      <button class="modal-close-x" onclick="closeConfirm()">✕</button>
+      <span class="modal-title">⚠️ مراجعة قبل الطباعة</span>
+      <button class="modal-close-x" id="pgCloseX">✕</button>
     </div>
-    <div class="confirm-warning-box">
-      <div class="confirm-warning-title">
-        <span>🔴</span>
-        <span id="confirmWarningTitle">الأوردرات التالية سبق طباعتها:</span>
-      </div>
-      <div class="confirm-orders-list" id="confirmOrdersList"></div>
-    </div>
-    <p class="confirm-question">هل أنت متأكد من أنك تريد طباعتها مرة أخرى؟</p>
-    <div class="modal-actions" style="margin-top:20px;">
-      <button class="btn btn-ghost" onclick="closeConfirm()">إلغاء</button>
-      <button class="btn btn-danger" id="confirmPrintBtn">🖨️ نعم أريد الطباعة مرة أخرى</button>
+    <div class="pg-body" id="pgBody"></div>
+    <div class="pg-actions">
+      <!-- 🔴 «اطبع الباقيين» لازم يفضل شغّال دايمًا — الموظف اللي مش لاقي
+           الورقة القديمة دلوقتي مايتقفلش عليه الطابور كله. -->
+      <button class="btn btn-primary" id="pgPrintAllBtn">🖨️ اطبع الكل</button>
+      <button class="btn btn-outline" id="pgSkipBtn">اطبع الباقيين</button>
+      <button class="btn btn-red"     id="pgCancelBtn">إلغاء</button>
     </div>
   </div>
 </div>
@@ -1327,9 +1384,9 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <h4>الـ Endpoints الرئيسية</h4>
           <table>
             <tr><th>المسار / action</th><th>الوصف</th></tr>
-            <tr><td><code>POST /orders</code></td><td>الأوردرات الجاهزة — عادي (<code>S1</code>) واستبدال/استرجاع (<code>S2</code>) — و<code>zoneExcluded</code></td></tr>
+            <tr><td><code>POST /orders</code></td><td>الأوردرات الجاهزة — عادي (<code>S1</code>) واستبدال/استرجاع (<code>S2</code>) — و<code>zoneExcluded</code> و<code>printingTimeS1</code>/<code>packingTimeS1</code> (حارس الفاتورة اللاغية · S1 بس)</td></tr>
             <tr><td><code>POST /invoice</code></td><td>بيانات فاتورة أوردر واحد (+ <code>truncatedLineItems</code> · <code>truncatedReturns</code> · <code>multiCycle</code> · <code>cycleCount</code>)</td></tr>
-            <tr><td><code>POST /track</code></td><td>تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة <code>Ready</code> — بيطلب <code>employee</code></td></tr>
+            <tr><td><code>POST /track</code></td><td>تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة <code>Ready</code> — بيطلب <code>employee</code>، وبياخد <code>guard</code> اختياري (إقرار قطع الفاتورة → <code>extra.guard</code>)</td></tr>
             <tr><td><code>POST /logs</code></td><td>سجل الطباعة (+ <code>cap</code> · <code>total</code> · <code>truncated</code>)</td></tr>
             <tr><td><code>get_employees</code> · <code>check_employee</code> · <code>verify_employee</code> · <code>register_pin</code> · <code>log_logout</code></td><td>Universal D1 Auth</td></tr>
             <tr><td><code>diag</code></td><td>فحص ذاتي بدون كتابة — متغيرات · D1 · موظفين · OAuth · صلاحيات · Origin</td></tr>
@@ -1355,7 +1412,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>§SHELL</code> — الهيدر الـ sticky + شريط التابات + chip التاب</li>
             <li><code>§TOOL</code> — تاب الطباعة: KPIs · شريط الطباعة · القسم الموحّد (فلاتر + جدول)</li>
             <li><code>§LOG</code> — تاب السجل: KPIs · بانر التقصّ · القسم الموحّد</li>
-            <li><code>§MODALS</code> — الإعدادات · تأكيد إعادة الطباعة · نتيجة تسجيل الطباعة · About · Changelog</li>
+            <li><code>§MODALS</code> — الإعدادات · <b>بوابة المراجعة قبل الطباعة</b> · نتيجة تسجيل الطباعة · About · Changelog</li>
             <li><code>§CONFIG</code> — <code>WORKER_URL</code> · <code>LS_SECRET</code> · <code>apiRequest</code>/<code>apiPath</code>/<code>apiGet</code>/<code>apiPost</code></li>
             <li><code>§SHELL-JS</code> — النسخ · حارس الـ Worker · التوست · <code>playBeep</code> · <code>runDiag</code> · Freeze on Scroll</li>
             <li><code>§AUTH-JS</code> — ماكينة حالات الدخول الأربعة</li>
@@ -1375,11 +1432,18 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li><code>msState</code> — حالة كل فلاتر التابين بمفاتيح مسبوقة بـ <code>p</code> (طباعة) أو <code>l</code> (سجل)</li>
             <li><code>TYPE_LABEL</code> — تسميات العرض بس (عادي / استبدال/استرجاع). قيم D1 وعقد الـ Worker بتفضل <code>S1</code>/<code>S2</code></li>
             <li><code>sec.print</code> / <code>sec.log</code> — حالة البحث والتاريخ والترتيب لكل قسم على حدة</li>
+            <li><code>VOID_INVOICE_STATUSES</code> — الحالات اللي رجوع الأوردر ليها معناه إن الفاتورة المطبوعة بقت لاغية (<code>Confirmed + Edit</code> · <code>Confirmed</code>)</li>
+            <li><code>REPRINT_WARN_MINUTES = 30</code> — نافذة «اتطبع من شوية». <strong>ثابت مسمّى — تغييره قرار مش صدفة</strong></li>
             <li><code>PRINT_CONCURRENCY = 4</code> — أقصى عدد نداءات <code>/invoice</code> أو <code>/track</code> شغّالة في نفس الوقت. <strong>مش ضبط أداء</strong> — هو اللي بيمنع فشل الدفعة كلها (R15)</li>
           </ul>
 
           <h4>NOTES / QUIRKS</h4>
           <ul>
+            <li>🔴 <b>بوابة المراجعة قبل الطباعة</b> — نافذة <b>واحدة</b> بتجمع تلات تنبيهات بالخطورة، وكل أوردر بيتعرض <b>مرة واحدة</b> تحت أعلى فئة: 🔴 فاتورة لاغية (تأكيد إلزامي لكل أوردر) · 🟠 اتطبع خلال آخر ٣٠ دقيقة · 🟡 سبق طباعته. تلات نوافذ ورا بعض = الموظف بيدوس Enter من غير ما يقرا.</li>
+            <li>🔴 <b>الفاتورة اللاغية</b> — الطباعة بتحوّل الحالة لـ <code>Ready</code>، فرجوع الأوردر لـ <code>Confirmed + Edit</code> معناه إن التعديل حصل <b>بعد</b> الطباعة: الورقة القديمة لاغية حتمًا. المصدران <code>printingTimeS1</code> (ميتافيلد، بيتدهس كل طباعة) و<code>printLastS1Map</code> (سجل D1، محدود بالسقف) — الحارس بيولّع لو <b>أي</b> منهم قال «اتطبع».</li>
+            <li>📦 <code>packingTimeS1</code> موجود = الفاتورة اللاغية <b>جوّه طرد متغلّف</b> — فتح طرد مش قطع ورقة، فمستوى منفصل بشارته.</li>
+            <li>«اطبع الباقيين» و«إلغاء» <b>عمرهم ما بيتعطّلوا</b>، و<b>فشل جلب السجل مايمنعش الطباعة</b> — حارس بيمنع الشغل بيتشال بعد أسبوع.</li>
+            <li>كل فاتورة في آخرها سطر <b>7px</b> بتاريخ ووقت الطباعة بتوقيت القاهرة بالثانية + اسم الموظف (<code>invoicePrintStamp</code>) — الفرق الوحيد اللي بيميّز ورقتين لنفس الأوردر. ألوانه حرفية زي باقي الفاتورة.</li>
             <li><code>ZONE_FILTER</code> بيتطبّق في الـ Worker — «الأوردر مش ظاهر» يعني <code>custom.zone</code> بره <code>Cairo+Giza</code>/<code>Show_Room</code> (أو فاضي خالص). العدد المستبعَد لسه بيرجع في <code>/orders</code> كـ <code>zoneExcluded</code> لكنه مش معروض في الواجهة.</li>
             <li><code>Delivered</code> حالة نهائية — الطباعة بتتسجّل بس الحالة <strong>مش</strong> بتتكتب، والنتيجة بترجع <code>warning</code>.</li>
             <li>عدّاد «مرات الطباعة» بيتبني من سجل D1، وبيقصّ عند سقف الـ Worker — البانر فوق جدول السجل بيقول لو ده حصل.</li>
@@ -1388,7 +1452,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <li>فلترة الجدولين client-side على البيانات المحمّلة — الأداة بتحمّل السجل كله عشان تبني عدّاد الطباعة، فمفيش pagination من السيرفر.</li>
             <li><strong>الطباعة بتمشي بحد تزامن ٤ (<code>mapLimit</code>)، مش <code>Promise.all</code> على الدفعة كلها.</strong> قبل v3.4.0 دفعة ٥٠ أوردر كانت بتولّد ٥٠ نداء متزامن، وأي واحد يفشل يلغي الخمسين برسالة CORS واحدة — صفر فاتورة وصفر صف في D1. لو رجّعت <code>Promise.all</code>، الباج بيرجع معاها.</li>
             <li>فشل تحضير فاتورة أوردر <strong>مابيوقّفش</strong> الدفعة — الأوردر بيترجع كصف <code>error</code> في نافذة النتايج جنب نتايج التسجيل. الصفوف دي <strong>مالهاش</strong> <code>logged</code> عن قصد: مفيش أي فعل حصل، فتحذير «تمت لكن ما اتسجلتش» هيبقى مضلّل.</li>
-            <li><code>MIN_WORKER_VERSION</code> فضلت <code>2.1.0</code> مع إن الـ Worker بقى <code>2.2.0</code> — الواجهة <strong>مش</strong> معتمدة على أي حاجة جديدة فيه (كاش التوكن و<code>Access-Control-Max-Age</code> الاتنين شفافين للواجهة). ترفعها من غير سبب = تحذير كاذب عند أي rollback مشروع.</li>
+            <li><code>MIN_WORKER_VERSION</code> بقت <code>2.3.0</code> — الواجهة بقت <strong>معتمدة فعلاً</strong> على <code>printingTimeS1</code> و<code>packingTimeS1</code> في رد <code>/orders</code> (حارس الفاتورة اللاغية)، وده بالظبط شرط ترفيع الحد الأدنى. Worker أقدم = الحارس بيشتغل بسجل D1 بس + توست صريح.</li>
           </ul>
         </div>
       </details>
@@ -1408,9 +1472,25 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.4.0</span>
+          <span class="cl-ver">v3.5.0</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
-          <span class="cl-date">05-09-2026</span>
+          <span class="cl-date">06-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span><strong>حارس الفاتورة اللاغية.</strong> أوردر رجع لطابور الطباعة (<code>Confirmed + Edit</code> أو <code>Confirmed</code>) وسبق طباعته معناه إن فيه <strong>ورقة بمحتوى قديم</strong> في المخزن — الأداة بقت تطلب من الموظف يأكّد إنه قطّعها قبل ما يطبع الجديدة، <strong>أوردر أوردر بالاسم</strong>.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>الأوردر المتغلّف بيتعلّم بشارة <strong>📦 متغلّف</strong> — الفاتورة جوّه طرد مقفول، يعني فتح مش قطع ورقة.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span><strong>نافذة مراجعة واحدة</strong> قبل الطباعة بدل نافذتين متتاليتين — الفواتير اللاغية والطباعة المتكررة وسابق الطباعة كلهم في شاشة واحدة، وكل أوردر بيتعرض <strong>مرة واحدة</strong> تحت أعلى تنبيه.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>شارة <strong>🔴 فاتورة لاغية</strong> في الجدول + سطر «آخر طباعة من كذا» + عدّاد تحت كارت «عادي» + <strong>فلتر «تنبيهات»</strong> عشان تخلّص القطع دفعة واحدة.</span></div>
+          <div class="cl-item"><span class="cl-tag new">جديد</span><span>كل فاتورة بقى في آخرها سطر صغير جدًا فيه <strong>تاريخ ووقت الطباعة بتوقيت القاهرة بالثانية + اسم الموظف</strong> — عشان ورقتين لنفس الأوردر يبقى بينهم فرق يتقرا.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>إقرار قطع الفاتورة بيتسجّل في السجل جوّه صف الطباعة نفسه (<code>extra.guard</code>).</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>الحد الأدنى لنسخة الـ Worker بقى <code>2.3.0</code> — الواجهة بقت معتمدة على بيانات جديدة في <code>/orders</code>. الـ Worker الأقدم بيدّي تنبيه صريح والحارس بيشتغل بالسجل بس.</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.4.0</span>
+                    <span class="cl-date">05-09-2026</span>
         </div>
         <div class="cl-list">
           <div class="cl-item"><span class="cl-tag fix">إصلاح</span><span><strong>دفعة طباعة كبيرة كانت بتفشل كلها.</strong> الأداة كانت بتبعت نداء لكل أوردر في نفس اللحظة بلا أي حد — دفعة ٥٠ أوردر = ٥٠ نداء متزامن — و<strong>أي</strong> نداء يفشل كان بيلغي الدفعة كلها برسالة «تعذّر الوصول للـ Worker». دلوقتي ٤ نداءات في المرة.</span></div>
@@ -1571,11 +1651,11 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.4.0";
+const TOOL_VERSION = "3.5.0";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
-const MIN_WORKER_VERSION = "2.1.0";   // ⚠️ مش 2.2.0 — تحسينات v2.2.0 (كاش التوكن · Max-Age) شفافة للواجهة
+const MIN_WORKER_VERSION = "2.3.0";   // ⚠️ اترفعت في v3.5.0 — الواجهة بقت **معتمدة فعلاً** على `printingTimeS1`/`packingTimeS1` في رد `/orders` (Standards #29)
 let workerVersion = null;
 
 // مقارنة رقمية — مش نصية. "10" أصغر من "9" لو اتقارنوا كنص.
@@ -1869,17 +1949,18 @@ const msState = {
   pType:   { items: [], selected: new Set(), search: "", mode: "list" },
   pStatus: { items: [], selected: new Set(), search: "", mode: "list" },
   pCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
+  pFlag:   { items: [], selected: new Set(), search: "", mode: "list" },
   lType:   { items: [], selected: new Set(), search: "", mode: "list" },
   lCount:  { items: [], selected: new Set(), search: "", mode: "list", rangeFrom: "", rangeTo: "" },
   lEmp:    { items: [], selected: new Set(), search: "", mode: "list" },
 };
-const keySection  = { pType:"print", pStatus:"print", pCount:"print", lType:"log", lCount:"log", lEmp:"log" };
+const keySection  = { pType:"print", pStatus:"print", pCount:"print", pFlag:"print", lType:"log", lCount:"log", lEmp:"log" };
 const filterLabels = {
-  pType:"النوع", pStatus:"الحالة", pCount:"مرات الطباعة",
+  pType:"النوع", pStatus:"الحالة", pCount:"مرات الطباعة", pFlag:"تنبيهات",
   lType:"النوع", lCount:"مرات الطباعة", lEmp:"الموظف",
 };
 const sec = {
-  print: { keys:["pType","pStatus","pCount"], searchTerm:"", dateFrom:null, dateTo:null,
+  print: { keys:["pType","pStatus","pCount","pFlag"], searchTerm:"", dateFrom:null, dateTo:null,
            dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
   log:   { keys:["lType","lCount","lEmp"],             searchTerm:"", dateFrom:null, dateTo:null,
            dateFilterActive:false, activePreset:"", sortState:{key:null,dir:null}, fltOpen:true, tblOpen:true },
@@ -2203,6 +2284,9 @@ let allOrders      = [];
 let filteredOrders = [];
 let selectedIds    = new Set();
 let printCountsMap = {};
+// آخر طباعة S1 لكل أوردر من سجل D1 — بتغذّي الحارس لما الميتافيلد يكون فاضي
+// (الطباعة نجحت والميتافيلد فشل → `/track` بيرجّع warning، والورقة موجودة برضه).
+let printLastS1Map = {};
 
 // ─── §TOOL-JS::mapLimit ───
 // تشغيل مهام بحد تزامن ثابت — البديل المعتمد لـ `Promise.all` على المصفوفة كلها.
@@ -2245,6 +2329,13 @@ async function loadOrders(forceRefresh = false) {
     allOrders = ordersData.orders || [];
     selectedIds.clear();
 
+    // 🔴 تدهور آمن: Worker أقدم من 2.3.0 مابيرجّعش `printingTimeS1` خالص،
+    //    فحارس الفاتورة اللاغية بيرجع لسجل D1 لوحده (محدود بالسقف ومن
+    //    v2.0.0 وطالع). ممنوع الأداة تبان طبيعية وهي شايفة نص الصورة.
+    if (allOrders.length && !("printingTimeS1" in allOrders[0])) {
+      showToast("⚠️ فحص الفاتورة اللاغية شغّال بالسجل بس — الـ Worker نسخة قديمة (محتاج 2.3.0)", "warn", 9000);
+    }
+
     allLogs = logsData.entries || [];
     logsLoaded = true;
     buildLogPrintCounts();
@@ -2276,21 +2367,97 @@ function rebuildPrintFilterItems() {
   rebuildMsItems("pType",   [...new Set(rows.map(r => r.type))].sort(), typeLabel);
   rebuildMsItems("pStatus", [...new Set(rows.map(r => r.status).filter(Boolean))].sort());
   rebuildMsItems("pCount",  [...new Set(rows.map(r => r.count))].sort((a,b)=>a-b));
+  rebuildMsItems("pFlag",   [...new Set(rows.map(r => r.flag))].sort(), flagLabel);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🔴 §VOID-INVOICE — كشف «الفاتورة اللاغية» (قرار أحمد 06-09-2026)
+// ══════════════════════════════════════════════════════════════
+//
+// أوردر راجع لطابور الطباعة وفي نفس الوقت عليه أثر طباعة سابقة معناه إن
+// **فيه ورقة مطبوعة في المخزن بمحتوى قديم**. الطباعة بتحوّل الحالة لـ
+// `Ready`، فرجوعه لـ `Confirmed + Edit` معناه إن التعديل حصل **بعد**
+// الطباعة — الورقة القديمة لاغية حتمًا، مش احتمال.
+//
+// `Confirmed` (من غير Edit) + وقت طباعة = حد رجّع الحالة يدوي من `Ready`.
+// الورقة لاغية برضه، فبيتعامل بنفس الحارس بصياغة مختلفة.
+//
+// ⚠️ المصدران **مش نسخة من بعض**:
+//   `printingTimeS1` — ميتافيلد شوبيفاي، بيعيش للأبد وبيتدهس في كل طباعة
+//                      (`known-gaps` G-4) فبيقول **آخر** طباعة.
+//   `printLastS1Map` — سجل D1، محدود بسقف `LOGS_FETCH_MAX` وبيبدأ من v2.0.0.
+// الحارس بيولّع لو **أي** منهم قال «اتطبع» — الاتجاه الآمن هنا «اسأل زيادة».
+const VOID_INVOICE_STATUSES = ["Confirmed + Edit", "Confirmed"];
+
+function voidInvoiceInfo(o) {
+  if (o.type !== "S1" || !VOID_INVOICE_STATUSES.includes(o.status)) {
+    return { level: "", printedAt: null, printedBy: null };
+  }
+  const num  = String(o.name).replace("#", "");
+  const log  = printLastS1Map[num] || null;
+  const printedAt = o.printingTimeS1 || (log ? log.timestamp : null);
+  if (!printedAt) return { level: "", printedAt: null, printedBy: null };
+  return {
+    // الفاتورة جوّه طرد متغلّف = مش قطع ورقة، ده فتح طرد. مستوى منفصل.
+    level:     o.packingTimeS1 ? "packed" : "void",
+    printedAt,
+    printedBy: log ? log.employee : null,
+  };
+}
+
+const FLAG_LABEL = { "": "بدون تنبيه", void: "فاتورة لاغية", packed: "فاتورة لاغية + متغلّف" };
+function flagLabel(v) { return FLAG_LABEL[v] || v; }
+
+function flagChips(row) {
+  if (row.flag === "packed") {
+    return `<span class="flag-chip flag-void">🔴 فاتورة لاغية</span> ` +
+           `<span class="flag-chip flag-packed">📦 متغلّف</span>`;
+  }
+  if (row.flag === "void") return `<span class="flag-chip flag-void">🔴 فاتورة لاغية</span>`;
+  return "";
+}
+
+// «من ٣ ساعات» — نسخة الطابعة، باسم خاص بيها عشان ماتدهسش أي دالة في الـ shell.
+function prtSinceText(iso) {
+  // صيغ الجمع العربية — «من 3 ساعة» بتقرا غلط على شاشة بيتقرا منها قرار.
+  const ar = (n, one, two, few, many) =>
+    n === 1 ? one : n === 2 ? two : (n <= 10 ? `${n.toLocaleString("en-US")} ${few}` : `${n.toLocaleString("en-US")} ${many}`);
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1)  return "الآن";
+  if (mins < 60) return `من ${ar(mins, "دقيقة", "دقيقتين", "دقايق", "دقيقة")}`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24)  return `من ${ar(hrs, "ساعة", "ساعتين", "ساعات", "ساعة")}`;
+  const days = Math.round(hrs / 24);
+  return `من ${ar(days, "يوم", "يومين", "أيام", "يوم")}`;
 }
 
 function decoratePrintRows() {
-  return allOrders.map(o => ({
-    ...o,
-    count: getPrintCount(o),
-    date:  o.createdAt,
-    time:  o.createdAt,          // نفس الـ timestamp — عمودان للعرض بس
-    day:   cairoDayStr(o.createdAt),
-  }));
+  return allOrders.map(o => {
+    const vi = voidInvoiceInfo(o);
+    return {
+      ...o,
+      count: getPrintCount(o),
+      date:  o.createdAt,
+      time:  o.createdAt,          // نفس الـ timestamp — عمودان للعرض بس
+      day:   cairoDayStr(o.createdAt),
+      flag:      vi.level,         // "" | "void" | "packed"
+      printedAt: vi.printedAt,
+      printedBy: vi.printedBy,
+    };
+  });
 }
 
 function updatePrintKPIs() {
   document.getElementById("kpiS1").textContent = allOrders.filter(o => o.type === "S1").length.toLocaleString("en-US");
   document.getElementById("kpiS2").textContent = allOrders.filter(o => o.type === "S2").length.toLocaleString("en-US");
+
+  // 🔴 العدد بيتعرض بس لما يبقى فيه فعلاً فواتير لاغية — صفر مايتكتبش
+  //    عشان الشاشة ماتتعوّدش على تحذير دايم فتبطّل تشوفه.
+  const voidCount = decoratePrintRows().filter(r => r.flag).length;
+  const el = document.getElementById("kpiS1Void");
+  if (!el) return;
+  el.style.display = voidCount ? "" : "none";
+  el.textContent   = voidCount ? `🔴 منها ${voidCount.toLocaleString("en-US")} محتاجة قطع فاتورة` : "";
 }
 
 function applyPrintFilters() {
@@ -2302,6 +2469,7 @@ function applyPrintFilters() {
     if (msState.pType.selected.size   && !msState.pType.selected.has(o.type))     return false;
     if (msState.pStatus.selected.size && !msState.pStatus.selected.has(o.status)) return false;
     if (!numericPass("pCount", o.count)) return false;
+    if (msState.pFlag.selected.size   && !msState.pFlag.selected.has(o.flag))   return false;
     if (s.dateFrom && o.day < s.dateFrom) return false;
     if (s.dateTo   && o.day > s.dateTo)   return false;
     return true;
@@ -2326,8 +2494,9 @@ function renderPrintTable(rows) {
         <td>${formatTimeOnly(o.createdAt)}</td>
         <td>${escHtml(o.customer)}</td>
         <td>${typeBadge(o.type)}</td>
-        <td>${statusCell(o.status)}</td>
-        <td><span class="count-badge ${countClass(c)}">${c}</span></td>
+        <td>${statusCell(o.status)}${o.flag ? `<br>${flagChips(o)}` : ""}</td>
+        <td><span class="count-badge ${countClass(c)}">${c}</span>${
+          o.printedAt ? `<span class="cell-sub">آخر طباعة ${escHtml(prtSinceText(o.printedAt))}</span>` : ""}</td>
       </tr>`;
     }).join("");
   }
@@ -2363,36 +2532,199 @@ function printAll() {
   startPrint();
 }
 
+const gateLink = orderLink;   // نفس كود البوابة في الملفين — الفرق الوحيد السطر ده
+
 async function startPrint() {
   const selected = filteredOrders.filter(o => selectedIds.has(o.id));
   if (!selected.length) { showToast("لم يتم تحديد أي أوردر", "warn"); return; }
-  const alreadyPrinted = selected.filter(o => o.count > 0);
-  if (alreadyPrinted.length) { showConfirmReprint(alreadyPrinted, selected); return; }
-  await executePrint(selected);
+  const gate = await runPreprintGate(selected);
+  if (!gate) { showToast("اتلغت الطباعة", "info"); return; }
+  if (!gate.orders.length) { showToast("مفيش أوردرات باقية للطباعة", "warn"); return; }
+  await executePrint(gate.orders, gate.guards);
 }
-
-function showConfirmReprint(alreadyPrinted, allSelected) {
-  document.getElementById("confirmWarningTitle").textContent =
-    `${alreadyPrinted.length.toLocaleString("en-US")} أوردر سبق طباعته:`;
-  document.getElementById("confirmOrdersList").innerHTML = alreadyPrinted.map(o =>
-    `<div class="confirm-order-item">
-       <span>${orderLink(o.name, o.orderId)}</span>
-       <span class="confirm-order-meta">اتطبع ${o.count.toLocaleString("en-US")} مرة · ${escHtml(typeLabel(o.type))}</span>
-     </div>`).join("");
-  const btn = document.getElementById("confirmPrintBtn");
-  const fresh = btn.cloneNode(true);          // بيمسح أي listener قديم
-  btn.parentNode.replaceChild(fresh, btn);
-  fresh.addEventListener("click", () => { closeConfirm(); executePrint(allSelected); });
-  document.getElementById("confirmOverlay").classList.add("open");
-}
-function closeConfirm() { document.getElementById("confirmOverlay").classList.remove("open"); }
 
 // حد التزامن لنداءات الطباعة (`/invoice` و `/track`).
 // ⚠️ الرقم ده **مش** ضبط أداء — هو اللي بيمنع فشل الدفعة كلها. نفس الدرس
 // الموجود في Ready-to-Pack / Pack Checker (`S2_CONCURRENCY = 4`).
 const PRINT_CONCURRENCY = 4;
 
-async function executePrint(selectedOrders) {
+// ══════════════════════════════════════════════════════════════
+// 🔴 §PREPRINT-GATE — بوابة المراجعة قبل الطباعة
+// ══════════════════════════════════════════════════════════════
+//
+// نافذة **واحدة** بتجمع تلات حُرّاس. قبل كده كانوا هيبقوا تلات نوافذ
+// متتالية على نفس الدفعة، والأوردر الواقع في التلاتة كان هيتعرض تلات
+// مرات بتلات صياغات — الموظف يفتكرها تلات مشاكل، ويدوس Enter من غير
+// ما يقرا، والحارس يبقى ديكور.
+//
+// الترتيب بالخطورة، وكل أوردر بيتعرض **مرة واحدة** تحت أعلى فئة:
+//   🔴 void/packed — فاتورة لاغية في المخزن   ← تأكيد إلزامي لكل أوردر
+//   🟠 recent      — اتطبع خلال آخر ٣٠ دقيقة  ← تنبيه (جهازين × «طباعة الكل»)
+//   🟡 printed     — سبق طباعته قبل كده        ← تنبيه
+//
+// ⚠️ ثابت مسمّى — تغييره **قرار** مش صدفة.
+const REPRINT_WARN_MINUTES = 30;
+
+// جلب **طازة** لسجل يوم القاهرة الحالي. الخريطة المبنية وقت الدخول ممكن
+// تكون عمرها ٣ ساعات، وتحذير مبني على بيانات قديمة **أسوأ من مفيش تحذير**
+// لأنه بيدّي إحساس كاذب بالأمان. D1 مش شوبيفاي — الاستعلام رخيص وبيستخدم
+// `idx_logs_tool_ts`.
+async function fetchTodayPrintMap() {
+  const fresh = await apiPath("/logs", { dateFrom: cairoDayStr(new Date()) });
+  const last = {};                       // الرد مرتّب DESC — أول ظهور هو الأحدث
+  for (const e of (fresh.entries || [])) {
+    const num = String(e.orderNumber).replace("#", "");
+    if (!last[num]) last[num] = e;
+  }
+  return last;
+}
+
+// بترجّع { orders, guards } للطباعة · أو `null` لو الموظف لغى.
+async function runPreprintGate(selected) {
+  let todayMap = {};
+  try {
+    todayMap = await fetchTodayPrintMap();
+  } catch (err) {
+    // 🔴 الفشل مايمنعش الطباعة أبدًا — حارس بيمنع الشغل بيتشال بعد أسبوع.
+    showToast("تعذّر فحص الطباعة المتكررة — المراجعة مكمّلة بالبيانات المحمّلة", "warn", 5000);
+  }
+
+  const cutoff = Date.now() - REPRINT_WARN_MINUTES * 60000;
+  const rows = selected.map(o => {
+    const entry = todayMap[String(o.name).replace("#", "")] || null;
+    const recent = entry && new Date(entry.timestamp).getTime() > cutoff ? entry : null;
+    const level = o.flag ? o.flag : (recent ? "recent" : (o.count > 0 ? "printed" : "clean"));
+    return { order: o, level, recent };
+  });
+
+  const need = rows.filter(r => r.level === "void" || r.level === "packed");
+  const rest = rows.filter(r => r.level === "recent" || r.level === "printed");
+  if (!need.length && !rest.length) return { orders: selected, guards: {} };
+  return openGate(rows);
+}
+
+function closeGate() { document.getElementById("gateOverlay").classList.remove("open"); }
+
+function openGate(rows) {
+  return new Promise(resolve => {
+    const need    = rows.filter(r => r.level === "void" || r.level === "packed");
+    const recent  = rows.filter(r => r.level === "recent");
+    const printed = rows.filter(r => r.level === "printed");
+    const clean   = rows.filter(r => r.level === "clean");
+    const total   = rows.length;
+
+    // 🔴 الأوردر بيتحدد **بالاسم** — «٣ فواتير لاغية» من غير أسماء يعني
+    //    الموظف مايقدرش يقرر.
+    const rowHTML = (r, withCheck) => {
+      const o = r.order;
+      const when = r.level === "recent"
+        ? `${escHtml(prtSinceText(r.recent.timestamp))} · ${escHtml(r.recent.employee || "—")}`
+        : (o.printedAt
+            ? `اتطبعت ${escHtml(prtSinceText(o.printedAt))}${o.printedBy ? " · " + escHtml(o.printedBy) : ""}`
+            : `اتطبع ${o.count.toLocaleString("en-US")} مرة`);
+      return `<label class="pg-row${withCheck ? " need" : ""}">
+        ${withCheck ? `<input type="checkbox" data-gate-need="${escHtml(o.id)}" onchange="gateSyncState()">` : ""}
+        <span class="pg-row-main">
+          <span class="pg-row-top">${gateLink(o.name, o.orderId)} ${flagChips(o)}</span>
+          <span class="pg-meta">${when} · ${escHtml(o.status || "—")}</span>
+        </span>
+      </label>`;
+    };
+
+    const sections = [];
+    if (need.length) {
+      const anyPacked = need.some(r => r.level === "packed");
+      sections.push(`<div class="pg-sec red">
+        <div class="pg-sec-head"><span>🔴 فواتير لاغية — لازم تتقطّع قبل الطباعة</span>
+          <span class="pg-sec-count">${need.length.toLocaleString("en-US")}</span></div>
+        <div class="pg-list">${need.map(r => rowHTML(r, true)).join("")}</div>
+        <div class="pg-note">الأوردرات دي رجعت للطابور بعد ما اتطبعت، يعني الورقة المطبوعة عندها محتوى قديم.
+          ${anyPacked ? "<b>واحد أو أكتر منها متغلّف — الفاتورة جوّه الطرد، لازم يتفتح.</b> " : ""}
+          علّم على اللي قطعته بس.</div>
+      </div>`);
+    }
+    if (recent.length) {
+      sections.push(`<div class="pg-sec amber">
+        <div class="pg-sec-head"><span>🟠 اتطبعوا خلال آخر ${REPRINT_WARN_MINUTES.toLocaleString("en-US")} دقيقة</span>
+          <span class="pg-sec-count">${recent.length.toLocaleString("en-US")}</span></div>
+        <div class="pg-list">${recent.map(r => rowHTML(r, false)).join("")}</div>
+        <div class="pg-note">غالبًا حد تاني على جهاز تاني طبعهم من شوية.</div>
+      </div>`);
+    }
+    if (printed.length) {
+      sections.push(`<div class="pg-sec">
+        <div class="pg-sec-head"><span>🟡 سبق طباعتهم قبل كده</span>
+          <span class="pg-sec-count">${printed.length.toLocaleString("en-US")}</span></div>
+        <div class="pg-list">${printed.map(r => rowHTML(r, false)).join("")}</div>
+      </div>`);
+    }
+    if (clean.length) {
+      sections.push(`<div class="pg-ok">✅ ${clean.length.toLocaleString("en-US")} أوردر جاهزين للطباعة بلا أي تنبيه</div>`);
+    }
+    document.getElementById("pgBody").innerHTML = sections.join("");
+
+    // «الباقيين» = الدفعة من غير أعلى فئة موجودة. لو مفيش فئة تتشال، الزرار بيختفي.
+    const skipSet = new Set((need.length ? need : recent).map(r => r.order.id));
+    const restCount = total - skipSet.size;
+    const skipBtn = document.getElementById("pgSkipBtn");
+    skipBtn.style.display = (skipSet.size && restCount > 0) ? "" : "none";
+    skipBtn.textContent = need.length
+      ? `اطبع الـ ${restCount.toLocaleString("en-US")} الباقيين (من غير الفواتير اللاغية)`
+      : `اطبع الـ ${restCount.toLocaleString("en-US")} الباقيين`;
+    document.getElementById("pgPrintAllBtn").textContent = `🖨️ اطبع الـ ${total.toLocaleString("en-US")} كلهم`;
+
+    const finish = (val) => { closeGate(); resolve(val); };
+    const handlers = {
+      pgPrintAllBtn: () => finish({ orders: rows.map(r => r.order), guards: buildGateGuards(need) }),
+      pgSkipBtn:     () => finish({ orders: rows.filter(r => !skipSet.has(r.order.id)).map(r => r.order), guards: {} }),
+      pgCancelBtn:   () => finish(null),
+      pgCloseX:      () => finish(null),
+    };
+    // بيمسح أي listener قديم (النافذة بتتفتح أكتر من مرة في الوردية)
+    for (const [id, fn] of Object.entries(handlers)) {
+      const el = document.getElementById(id);
+      const fresh = el.cloneNode(true);
+      el.parentNode.replaceChild(fresh, el);
+      fresh.addEventListener("click", fn);
+    }
+
+    window.gateNeedIds = need.map(r => r.order.id);
+    document.getElementById("gateOverlay").classList.add("open");
+    gateSyncState();
+    playBeep("warn");
+  });
+}
+
+// «اطبع الكل» متعطّل لحد ما كل مربعات القطع تتظبط. «اطبع الباقيين» و«إلغاء»
+// **مش** بيتعطّلوا أبدًا — دايمًا فيه مخرج من غير ما الموظف يكدب.
+function gateSyncState() {
+  const ids = window.gateNeedIds || [];
+  const done = ids.every(id =>
+    document.querySelector(`[data-gate-need="${id}"]`)?.checked);
+  const btn = document.getElementById("pgPrintAllBtn");
+  btn.disabled = !done;
+  btn.title = done ? "" : "علّم على كل الفواتير اللاغية اللي قطعتها الأول";
+}
+
+// إقرار القطع بيتسجّل في D1 جوّه `extra.guard` بتاع صف الطباعة — من غير
+// `type` جديد، فجدول `logs` المشترك ما اتغيّرش عقده.
+function buildGateGuards(need) {
+  const guards = {};
+  for (const r of need) {
+    guards[r.order.id] = {
+      name:         String(r.order.name),
+      prevPrintAt:  r.order.printedAt  || "",
+      prevPackAt:   r.order.packingTimeS1 || "",
+      statusAtGate: r.order.status || "",
+      cutConfirmed: true,
+    };
+  }
+  return guards;
+}
+
+// `guards` — إقرارات قطع الفواتير اللاغية، مفتاحها `order.id`. بتتبعت مع
+// `/track` وبتتسجّل في `extra.guard` بتاع صف الطباعة (Worker v2.3.0).
+async function executePrint(selectedOrders, guards = {}) {
   if (!currentEmployee) { showToast("سجّل الدخول أولاً", "error"); return; }
   const total = selectedOrders.length;
   showPrintLoading(`جاري تحضير ${total.toLocaleString("en-US")} فاتورة...`);
@@ -2456,6 +2788,7 @@ async function executePrint(selectedOrders) {
     const trackSettled = await mapLimit(invoices, PRINT_CONCURRENCY, async (inv) => {
       const res = await apiPath("/track", {
         orderId: inv.id, orderNumber: inv.name, type: inv.type, employee: currentEmployee.username,
+        ...(guards[inv.id] ? { guard: guards[inv.id] } : {}),
       });
       trackedCount++;
       showPrintLoading(`جاري تسجيل الطباعة... ${trackedCount.toLocaleString("en-US")}/${invoices.length.toLocaleString("en-US")}`);
@@ -2582,7 +2915,14 @@ async function loadLogs() {
 
 function buildLogPrintCounts() {
   logCounts = {};
-  for (const e of allLogs) logCounts[e.orderNumber] = (logCounts[e.orderNumber] || 0) + 1;
+  printLastS1Map = {};
+  for (const e of allLogs) {
+    logCounts[e.orderNumber] = (logCounts[e.orderNumber] || 0) + 1;
+    // الرد مرتّب DESC — أول ظهور هو الأحدث
+    if (e.type === "S1" && !printLastS1Map[e.orderNumber]) {
+      printLastS1Map[e.orderNumber] = { timestamp: e.timestamp, employee: e.employee };
+    }
+  }
   printCountsMap = { ...logCounts };
 }
 
@@ -3251,6 +3591,21 @@ function renderNotesSection(inv) {
   const content = hasNote || hasAttrs ? nc + ac : `<p style="margin:6px 0 0 0;">—</p>`;
   return `<div style="margin-top:1em;border:1px solid #000;padding:10px 12px;"><strong>Order Notes</strong><br/>${content}</div>`;
 }
+// ─── §INVOICE::printStamp ───
+// سطر واحد صغير جدًا في آخر الفاتورة: تاريخ ووقت الطباعة **بتوقيت القاهرة**
+// بالثانية + اسم الموظف. الهدف الوحيد إن ورقتين لنفس الأوردر يبقى بينهم فرق
+// يتقرا — مش بيانات تشغيلية، فبيتكتب بأصغر خط وأفتح لون في آخر مكان.
+// ⚠️ ألوان حرفية: مستند الـ iframe مالوش وصول للتوكنز — استثناء موثّق من
+//    Standards #35، زي باقي ألوان الفاتورة.
+function invoicePrintStamp() {
+  const d = toCairo(new Date().toISOString());
+  const ts = `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()} ` +
+             `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+  const who = (typeof currentEmployee !== "undefined" && currentEmployee) ? currentEmployee.username : "";
+  return `<div style="margin-top:10px;text-align:left;font-size:7px;font-weight:400;color:#c9c9c9;letter-spacing:.2px;">`
+       + `${escHtml(ts)}${who ? " · " + escHtml(who) : ""}</div>`;
+}
+
 function renderFooter() {
   return `<div style="display:flex;justify-content:center;align-items:center;gap:20px;margin-top:25px;font-size:14px;">
     <span style="font-weight:400;">Thank you for shopping with us ❤</span>
@@ -3262,7 +3617,7 @@ function renderFooter() {
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#000" viewBox="0 0 24 24"><path d="M12 13.065L.75 6.75V18A1.5 1.5 0 002.25 19.5h19.5A1.5 1.5 0 0023.25 18V6.75L12 13.065z"/><path d="M12 10.935L23.25 4.5H.75L12 10.935z"/></svg>
       ecommoda.com@gmail.com
     </span>
-  </div>`;
+  </div>` + invoicePrintStamp();
 }
 
 

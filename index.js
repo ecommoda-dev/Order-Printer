@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.2.0)
+// EcomModa — Order Printer (v2.3.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 05-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
@@ -23,6 +23,18 @@
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.3.0):
+//   - 🔴 حارس «الفاتورة اللاغية» — الواجهة محتاجة تعرف إن أوردر راجع للطابور
+//     (`Confirmed + Edit` أو `Confirmed`) سبق طباعته، عشان تطلب من الموظف
+//     يقطّع الورقة القديمة قبل ما يطبع الجديدة. `/orders` بقى بيرجّع:
+//       `printingTimeS1` — `custom.printing_time_s1` (آخر طباعة، بتتدهس كل مرة)
+//       `packingTimeS1`  — `custom.s1_packing_date_time` (الفاتورة جوّه طرد متغلّف)
+//     الاتنين **لأوردرات S1 بس** — قيمة S1 قديمة على أوردر معروض كـ S2 كانت
+//     هتولّع تحذير كاذب. (قرار أحمد 06-09-2026)
+//   - `/track` بقى بياخد `guard` اختياري (كائن مسطّح، مفاتيح بيضا) وبيحطه في
+//     `extra.guard` بتاع صف الطباعة — إقرار الموظف بقطع الفاتورة لازم يتسجّل،
+//     من غير `type` جديد في D1 (`ecommoda-constants` §7 ما اتغيّرتش).
 //
 // CHANGES (v2.2.0):
 //   - 🟠 R15 — دفعة طباعة كبيرة كانت بتفشل كلها برسالة CORS. الواجهة بتبعت
@@ -70,7 +82,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.2.1';
+const WORKER_VERSION = '2.3.0';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -559,6 +571,8 @@ const LIST_QUERY = `
           manual_status: metafield(namespace: "custom", key: "manual_status") { value }
           status_2_r_e:  metafield(namespace: "custom", key: "status_2_r_e")  { value }
           zone:          metafield(namespace: "custom", key: "zone")           { value }
+          printing_time_s1:     metafield(namespace: "custom", key: "printing_time_s1")     { value }
+          s1_packing_date_time: metafield(namespace: "custom", key: "s1_packing_date_time") { value }
         }
       }
     }
@@ -628,6 +642,13 @@ async function handleOrders(request, env) {
     customer:  [o.customer?.firstName, o.customer?.lastName].filter(Boolean).join(' ') || '-',
     type:      o.type,
     status:    o.status,
+    // 🔴 حارس الفاتورة اللاغية — **S1 بس**. `printing_time_s1` بيفضل على
+    //    الأوردر بعد أي طباعة S1، فلو عرضناه على صف S2 كان هيولّع تحذير
+    //    «فاتورة لاغية» على أوردر استبدال ما اتطبعش أصلاً.
+    //    ⚠️ القيمة دي **آخر** طباعة مش أول واحدة — الأداة بتدهسها في كل
+    //    طباعة (`known-gaps` G-4). ودي بالظبط اللي الحارس محتاجها.
+    printingTimeS1: o.type === 'S1' ? (o.printing_time_s1?.value     || null) : null,
+    packingTimeS1:  o.type === 'S1' ? (o.s1_packing_date_time?.value || null) : null,
     total:     parseFloat(o.totalPriceSet?.shopMoney?.amount || 0),
     tags:      o.tags || [],
     isPrinted: (o.tags || []).includes(`Printed(${o.type})`),
@@ -1028,6 +1049,24 @@ async function setStatusToReady(env, token, gid, type, statusBefore, actions) {
 // ─── §PRINT::handleTrack ───
 // النتيجة **تلات حالات مش اتنين**، والأكشنز بتتملي أول بأول من مصفوفة ممرّرة
 // من بره — عشان استثناء في النص ما يخليش السجل يقول "ما حصلش حاجة".
+// ─── §PRINT::sanitizeGuard ───
+// إقرار الموظف بقطع الفاتورة القديمة بيتسجّل في `extra.guard` بتاع صف الطباعة.
+// ⚠️ قايمة بيضا مقفولة + قصّ الطول: الجسم جاي من العميل، و`extra` عمود مشترك
+//    في جدول `logs` بتاع كل الستاك. أي مفتاح بره القايمة بيتسقط في صمت
+//    **عن قصد** — الطباعة عمرها ما تفشل عشان حقل تسجيل.
+const GUARD_KEYS = ['name', 'prevPrintAt', 'prevPackAt', 'cutConfirmed', 'statusAtGate'];
+function sanitizeGuard(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {};
+  for (const k of GUARD_KEYS) {
+    const v = raw[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'boolean') { out[k] = v; continue; }
+    if (typeof v === 'string')  { out[k] = v.slice(0, 120); continue; }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 async function handleTrack(request, env) {
   assertEnv(env, 'shopify');
 
@@ -1045,6 +1084,8 @@ async function handleTrack(request, env) {
   if (!employee) {
     return json({ error: 'employee مطلوب — سجّل الدخول أولاً' }, 400, request);
   }
+
+  const guard = sanitizeGuard(body.guard);
 
   const gid      = String(orderId).startsWith('gid://') ? String(orderId) : `gid://shopify/Order/${orderId}`;
   const numericId = gid.split('/').pop();
@@ -1124,7 +1165,10 @@ async function handleTrack(request, env) {
       orderId:   numericId,
       orderName: orderNum,
       notes:     actions.join(' · ') || 'مفيش أي فعل تم',
-      extra:     { result: { status, actions, warnings, errors, statusBefore, statusLogged } },
+      extra:     {
+        result: { status, actions, warnings, errors, statusBefore, statusLogged },
+        ...(guard ? { guard } : {}),
+      },
     });
   } catch (e) {
     logged = false; logError = e.message;   // الطباعة حصلت — بس مفيش سجل
