@@ -35,6 +35,13 @@ database_id   = "90db62d3-bd7e-4d92-912b-10fc78eeb565"
 [vars]
 SHOP_DOMAIN = "6c7e1a-53.myshopify.com"
 
-# ⚠️ الأسرار مبتتكتبش هنا أبدًا: WORKER_SECRET · CLIENT_ID · CLIENT_SECRET
+# ⚠️ الأسرار مبتتكتبش هنا أبدًا:
+#      WORKER_SECRET · CLIENT_ID · CLIENT_SECRET · BOSTA_API_KEY
 #    Worker → Settings → Variables and Secrets → علّم Secret
 #    وبعدها: Deployments → Version History → ⋯ → Promote version
+#
+# 🔴 BOSTA_API_KEY — **جديد في v2.4.0**. من غيره طباعة بوليصة بوسطة بترجّع
+#    رسالة باسم المتغيّر (`assertEnv` مجموعة `bosta`)، وباقي الأداة شغّالة
+#    عادي. نفس المفتاح الموجود على `orders-packing-checker-worker` من v2.5.0
+#    — مفتاح حساب بوسطة، **مش** جزء من مجموعة السر `warehouse_ops`.
+#    🩺 فحص النظام بيعرض وجوده + إن `mass-awb` بيقبله.
