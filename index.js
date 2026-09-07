@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.3.0)
+// EcomModa — Order Printer (v2.4.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 — 05-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
@@ -16,6 +16,7 @@
 //
 // Endpoints — path routing (أدوات الأداة) + ?action= (المشترك القياسي):
 //   POST /orders              → أوردرات S1 + S2 الجاهزة للطباعة
+//   POST /lookup              → أوردر **واحد** بعينه مهما كانت حالته (إعادة طباعة)
 //   POST /invoice             → بيانات فاتورة أوردر واحد
 //   POST /track               → تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة Ready
 //   POST /logs                → سجل الطباعة (بعدّاد الطباعة لكل أوردر)
@@ -23,6 +24,30 @@
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.4.0):
+//   - 🔴 `POST /lookup` — أوردر **واحد** بعينه (بالـ id أو بالاسم) مهما كانت
+//     حالته، بنفس شكل صف `/orders` بالظبط. السبب: `/orders` بيفلتر على
+//     `Confirmed`/`Confirmed + Edit`/`Confirmed + RETURN`/`Confirmed + EXCHANGE`
+//     بحكم تعريفه، فأوردر **اتطبع خلاص** (حالته `Ready` وهو مستني التغليف)
+//     مالوش أي طريقة يوصل للواجهة — يعني **إعادة طباعة فاتورة مستحيلة** من
+//     غير ما حد يرجّع الحالة يدوي، وده تلويث للتاريخ + الأوردر بيختفي من
+//     طابور التغليف طول ما حالته مرجّعة. (قرار أحمد 06-09-2026)
+//     ⚠️ **قراءة بحتة** — صفر ميوتيشن وصفر صف D1. الكتابة كلها لسه في `/track`.
+//   - 🔴 `/invoice` بقى بياخد `type` **اختياري وصريح** (`S1`/`S2`). السبب لغم
+//     حقيقي: القاعدة الافتراضية بتقرا النوع من `status_2_r_e ∈ {Confirmed +
+//     RETURN, Confirmed + EXCHANGE}` بس — فأوردر S2 حالته **`Ready`** بيتقري
+//     `S1`. والنوع ده **مش تسمية**: هو اللي بيختار بنود الفاتورة نفسها
+//     (`fulfillableQuantity` مقابل `currentQuantity`)، وبعدين الواجهة بتبعت
+//     نفس النوع لـ `/track` اللي بيكتب على ماكينة **S1** — و`Shipped → Ready`
+//     تحوّل **مسموح**، يعني كتابة صامتة على أوردر خرج من المخزن.
+//     اللغم ده مكانش قابل للوصول قبل كده (`/invoice` عمره ما اتنادى على أوردر
+//     `Ready`) — بيولّع مع إعادة الطباعة بالظبط. الافتراضي **ما اتغيّرش**:
+//     من غير `type` السلوك حرفيًا زي v2.3.0، فمسار الطابور صفر تغيير.
+//   - ⚠️ `MIN_WORKER_VERSION` في **الأداة المستقلة** فضلت `2.3.0` عن قصد —
+//     الواجهة المستقلة مش بتنادي `/lookup` ومش بتبعت `type`، فترفيع الحد
+//     الأدنى هناك كان هيولّع تحذير كاذب على أي rollback مشروع (Standards #29).
+//     الهب هو اللي بيرفع `printer.min` لـ `2.4.0` لأنه هو المعتمد فعلاً.
 //
 // CHANGES (v2.3.0):
 //   - 🔴 حارس «الفاتورة اللاغية» — الواجهة محتاجة تعرف إن أوردر راجع للطابور
@@ -82,7 +107,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.3.0';
+const WORKER_VERSION = '2.4.0';
 
 const DATE_FROM   = '2026-04-01';
 const ZONE_FILTER = ['Cairo+Giza', 'Show_Room'];
@@ -115,6 +140,23 @@ const S2_STATUS = {
   IN_RETURN:          'In-Return',
   RETURNED:           'Returned',
 };
+
+// §CONSTANTS::S2 sets — التلاتة **مش مترادفات**، وكل واحدة ليها سؤال مختلف:
+//
+//   S2_CONFIRMED_VALUES — «الأوردر في طابور الطباعة كـ S2؟»
+//                         دي القاعدة الافتراضية في `/invoice` من قبل v2.4.0،
+//                         و**ما اتغيّرتش** — أي تعديل عليها بيغيّر سلوك مسار
+//                         الطابور القائم في صمت.
+//   S2_PRINTABLE_VALUES — «الدورة S2 لسه في المخزن؟» = القايمة اللي فوق +
+//                         `Ready` (اتطبع ومستني التغليف). دي اللي `/lookup`
+//                         بيحدد بيها النوع، لأن إعادة الطباعة بالتعريف على
+//                         أوردر **عدّى** مرحلة الطباعة. `Shipped`/`In-Return`/
+//                         `Returned` **مستبعدين**: الدورة خرجت من المخزن خلاص.
+//   S2_ALL_VALUES       — «الأوردر دخل ماكينة S2 أصلاً؟» — للتحقق من `type`
+//                         الصريح الجاي من العميل، مش أكتر.
+const S2_CONFIRMED_VALUES = [S2_STATUS.CONFIRMED_RETURN, S2_STATUS.CONFIRMED_EXCHANGE];
+const S2_PRINTABLE_VALUES = [...S2_CONFIRMED_VALUES, S2_STATUS.READY];
+const S2_ALL_VALUES       = Object.values(S2_STATUS);
 
 // §CONSTANTS::transitions — ecommoda-order-lifecycle §1.4 (S1) و §2.2 (S2).
 // السياسة: ارفض + سجّل — عمرها ما تسمح في صمت.
@@ -667,6 +709,146 @@ async function handleOrders(request, env) {
   }, 200, request);
 }
 
+// ══════════════════════════════════════════════════════════════
+// §LOOKUP — أوردر واحد بعينه، مهما كانت حالته (v2.4.0)
+// ══════════════════════════════════════════════════════════════
+//
+// 🔴 **ليه المسار ده موجود:** `/orders` بيفلتر على أربع حالات «مؤكَّد» بحكم
+//    تعريفه — فأوردر **اتطبع خلاص** (حالته `Ready` وهو مستني التغليف) مستحيل
+//    يوصل للواجهة. النتيجة اللي كانت في المخزن: الورقة تضيع أو تتقطع أو
+//    الطابعة تطلعها باهتة، ومفيش أي طريقة تطبعها تاني غير إن حد يرجّع حالة
+//    الأوردر يدوي لـ `Confirmed + Edit` — وده بيكتب في `metafields_change` إن
+//    العميل عدّل الأوردر (**كذب في التاريخ** بيغذّي حارس الفاتورة اللاغية
+//    بعد كده)، وبيخلّي الأوردر **يختفي من طابور التغليف** طول ما الحالة
+//    مرجّعة، فلو الموظف نسي يطبع الأوردر بيتوه من الطابورين.
+//
+// ⚠️ **قراءة بحتة** — صفر ميوتيشن، صفر صف D1، صفر تغيير حالة. الكتابة كلها
+//    لسه في `/track` لوحده.
+//
+// ⚠️ **`ZONE_FILTER` مابيتطبقش هنا** — ده استعلام عن أوردر الموظف كاتب رقمه
+//    بنفسه، مش طابور بيتبني له. بس الرد بيرجّع `zoneExcluded` لأن «الأوردر مش
+//    ظاهر في الطابور» سببه الحقيقي غالبًا المنطقة (أو غيابها).
+
+const LOOKUP_FIELDS = `
+  id legacyResourceId name createdAt tags
+  totalPriceSet { shopMoney { amount } }
+  customer { firstName lastName }
+  manual_status: metafield(namespace: "custom", key: "manual_status") { value }
+  status_2_r_e:  metafield(namespace: "custom", key: "status_2_r_e")  { value }
+  zone:          metafield(namespace: "custom", key: "zone")           { value }
+  printing_time_s1:     metafield(namespace: "custom", key: "printing_time_s1")     { value }
+  printing_time_s2:     metafield(namespace: "custom", key: "printing_time_s2")     { value }
+  s1_packing_date_time: metafield(namespace: "custom", key: "s1_packing_date_time") { value }
+  s2_packing_date_time: metafield(namespace: "custom", key: "s2_packing_date_time") { value }
+`;
+
+const LOOKUP_BY_ID_QUERY = `
+  query LookupOrderById($id: ID!) {
+    order(id: $id) { ${LOOKUP_FIELDS} }
+  }
+`;
+
+const LOOKUP_BY_NAME_QUERY = `
+  query LookupOrderByName($q: String!) {
+    orders(first: 10, query: $q) { edges { node { ${LOOKUP_FIELDS} } } }
+  }
+`;
+
+// ─── §LOOKUP::shapeLookupOrder ───
+//
+// الشكل **مطابق لصف `/orders`** بالحرف (نفس أسماء المفاتيح ونفس بوابة
+// `printingTimeS1`/`packingTimeS1` على S1) — عشان الواجهة تعدّي الصف ده على
+// نفس البوابة (`§PREPRINT-GATE`) ونفس `executePrint` من غير أي فرع تاني.
+// **صف بشكل مختلف = فرع تاني في الواجهة = درس R1 من أول وجديد.**
+//
+// ⚠️ الزيادات الأربعة (`s1Status` · `s2Status` · `printingTimeS2` ·
+//    `packingTimeS2`) **إضافة مش تعديل** — `/orders` مابيرجّعهمش، والواجهة
+//    بتقراهم بس على صف إعادة الطباعة.
+function shapeLookupOrder(node) {
+  const s1Status = node.manual_status?.value || null;
+  const s2Status = node.status_2_r_e?.value  || null;
+
+  // 🔴 النوع من `S2_PRINTABLE_VALUES` مش من `S2_CONFIRMED_VALUES` — أوردر
+  //    إعادة الطباعة بالتعريف **عدّى** مرحلة الطباعة، فحالته `Ready` مش
+  //    `Confirmed + …`. القايمة المؤكَّدة كانت هترجّعه `S1` وتطبع بنود غلط.
+  const type = S2_PRINTABLE_VALUES.includes(s2Status) ? 'S2' : 'S1';
+  const tags = node.tags || [];
+
+  return {
+    id:        node.id,
+    orderId:   node.legacyResourceId || String(node.id).split('/').pop(),
+    name:      node.name,
+    createdAt: node.createdAt,
+    customer:  [node.customer?.firstName, node.customer?.lastName].filter(Boolean).join(' ') || '-',
+    type,
+    status:    type === 'S2' ? s2Status : s1Status,
+    // الحالتان الخام — الواجهة بتعرضهم عشان الموظف يفهم ليه الأوردر مش في
+    // الطابور، بدل ما يفتكر الأداة عطلانة.
+    s1Status,
+    s2Status,
+    printingTimeS1: type === 'S1' ? (node.printing_time_s1?.value     || null) : null,
+    packingTimeS1:  type === 'S1' ? (node.s1_packing_date_time?.value || null) : null,
+    printingTimeS2: type === 'S2' ? (node.printing_time_s2?.value     || null) : null,
+    packingTimeS2:  type === 'S2' ? (node.s2_packing_date_time?.value || null) : null,
+    zone:      node.zone?.value || null,
+    total:     parseFloat(node.totalPriceSet?.shopMoney?.amount || 0),
+    tags,
+    isPrinted: tags.includes(`Printed(${type})`),
+  };
+}
+
+async function handleLookup(request, env) {
+  assertEnv(env, 'shopify');
+  const body    = await request.json().catch(() => ({}));
+  const rawId   = body?.orderId != null ? String(body.orderId).trim() : '';
+  const rawName = body?.name    != null ? String(body.name).trim()    : '';
+  if (!rawId && !rawName) return json({ error: 'Missing orderId أو name' }, 400, request);
+
+  const token = await getAccessToken(env);
+  let node = null;
+
+  if (rawId) {
+    const gid  = rawId.startsWith('gid://') ? rawId : `gid://shopify/Order/${rawId}`;
+    const data = await shopifyGQL(env, token, LOOKUP_BY_ID_QUERY, { id: gid }, 'lookup_by_id');
+    node = data?.data?.order || null;
+  } else {
+    // 🔴 **المطابقة التامة إلزامية.** فلتر `name:` في شوبيفاي بيطابق بالبادئة،
+    //    يعني `#5362` بيرجّع `#53621` كمان (نفس الفخ الموثّق في `journey.html`).
+    //    هنا الثمن أغلى بكتير من جدول ناقص: فاتورة **أوردر تاني** بتتطبع
+    //    وتتحط في طرد. فالبحث بيرجّع 404 بدل ما يخمّن.
+    const clean = rawName.replace('#', '');
+    const data  = await shopifyGQL(env, token, LOOKUP_BY_NAME_QUERY, { q: `name:#${clean}` }, 'lookup_by_name');
+    node = (data?.data?.orders?.edges || [])
+      .map(e => e.node)
+      .find(n => String(n.name).replace('#', '') === clean) || null;
+  }
+
+  if (!node) {
+    return json({ ok: false, error: `الأوردر ${rawName || rawId} غير موجود على شوبيفاي` }, 404, request);
+  }
+
+  const order = shapeLookupOrder(node);
+
+  // `undefined`/`null` مش في `ZONE_FILTER` — فالأوردر اللي مالوش منطقة خالص
+  // بيتحسب مستبعَد، وده **نفس** سلوك `/orders` بالظبط مش تشديد جديد.
+  const zoneExcluded = !ZONE_FILTER.includes(order.zone);
+  const inPrintQueue = !zoneExcluded && (
+    order.type === 'S2'
+      ? S2_CONFIRMED_VALUES.includes(order.s2Status)
+      : [S1_STATUS.CONFIRMED, S1_STATUS.CONFIRMED_EDIT].includes(order.s1Status)
+  );
+
+  return json({
+    ok:           true,
+    order,
+    inPrintQueue,
+    zoneExcluded,
+    zoneFilter:   ZONE_FILTER,
+    fetchedAt:    new Date().toISOString(),
+    source:       'shopify',
+  }, 200, request);
+}
+
 // ─── §PRINT::handleInvoice ───
 const INVOICE_QUERY = `
   query GetInvoice($id: ID!) {
@@ -770,9 +952,38 @@ const INVOICE_QUERY = `
   }
 `;
 
+// ─── §PRINT::resolveInvoiceType (v2.4.0) ───
+//
+// 🔴 **من غير `requested` السلوك حرفيًا زي v2.3.0** — مسار الطابور صفر تغيير.
+//
+// ⚠️ اللغم اللي الباراميتر ده اتضاف عشانه: القاعدة الافتراضية بتقرا النوع من
+//    `S2_CONFIRMED_VALUES` بس، فأوردر S2 حالته **`Ready`** (اتطبع ومستني
+//    التغليف) بيتقري `S1`. والنوع ده **مش تسمية** — هو اللي بيختار بنود
+//    الفاتورة نفسها تحت (`fulfillableQuantity` مقابل `currentQuantity`)،
+//    والواجهة بتاخد النوع من الرد ده وتبعته لـ `/track`، و`/track` بيكتب على
+//    ماكينة **S1** — و`Shipped → Ready` تحوّل **مسموح** في `ALLOWED_TRANSITIONS_S1`،
+//    يعني كتابة صامتة على أوردر خرج من المخزن خلاص.
+//    اللغم مكانش قابل للوصول قبل v2.4.0 لأن `/invoice` عمره ما اتنادى على
+//    أوردر `Ready`. `/lookup` بيفتح المسار ده، فالنوع بقى بيتبعت صريح.
+//
+// ⚠️ **الصريح بيتحقّق منه.** `type=S2` على أوردر مالوش أي قيمة في ماكينة S2
+//    بيترفض برسالة واضحة بدل ما يطبع فاتورة غلط — «ارفض + سجّل، عمرها ما
+//    تسمح في صمت» (`ecommoda-order-lifecycle` §1.5).
+function resolveInvoiceType(order, requested) {
+  const s2 = order.status_2_r_e?.value || null;
+  if (!requested) return { type: S2_CONFIRMED_VALUES.includes(s2) ? 'S2' : 'S1' };
+  if (requested !== 'S1' && requested !== 'S2') {
+    return { error: `type غير صالح: "${requested}" — المسموح S1 أو S2` };
+  }
+  if (requested === 'S2' && !S2_ALL_VALUES.includes(s2)) {
+    return { error: `type=S2 مرفوض للأوردر ${order.name} — الأوردر ده مالوش أي قيمة في ماكينة S2 (custom.status_2_r_e فاضي)` };
+  }
+  return { type: requested };
+}
+
 async function handleInvoice(request, env) {
   assertEnv(env, 'shopify');
-  const { orderId } = await request.json().catch(() => ({}));
+  const { orderId, type: requestedType } = await request.json().catch(() => ({}));
   if (!orderId) return json({ error: 'Missing orderId' }, 400, request);
 
   const token = await getAccessToken(env);
@@ -782,8 +993,9 @@ async function handleInvoice(request, env) {
   const order = data?.data?.order;
   if (!order) return json({ error: 'Order not found' }, 404, request);
 
-  const S2_VALUES = [S2_STATUS.CONFIRMED_RETURN, S2_STATUS.CONFIRMED_EXCHANGE];
-  const type      = S2_VALUES.includes(order.status_2_r_e?.value) ? 'S2' : 'S1';
+  const resolved = resolveInvoiceType(order, requestedType);
+  if (resolved.error) return json({ error: resolved.error }, 400, request);
+  const type = resolved.type;
   const isPrepaid =
     (order.displayFinancialStatus   || '').toLowerCase() === 'paid' &&
     (order.displayFulfillmentStatus || '').toLowerCase() !== 'fulfilled';
@@ -1419,6 +1631,7 @@ export default {
 
       // ─── §PRINT (path routing — الشكل التاريخي للأداة) ─────────
       if (method === 'POST' && path === '/orders')  return handleOrders(request, env);
+      if (method === 'POST' && path === '/lookup')  return handleLookup(request, env);
       if (method === 'POST' && path === '/invoice') return handleInvoice(request, env);
       if (method === 'POST' && path === '/track')   return handleTrack(request, env);
       if (method === 'POST' && path === '/logs')    return handleLogs(request, env);
