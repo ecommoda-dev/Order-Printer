@@ -1472,8 +1472,19 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
       <div class="cl-entry">
         <div class="cl-head">
-          <span class="cl-ver">v3.5.0</span>
+          <span class="cl-ver">v3.5.1</span>
           <span class="cl-badge" id="clLatestBadge">آخر نسخة</span>
+          <span class="cl-date">06-09-2026</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span>سطران في <b>بوابة المراجعة</b> و<code>executePrint</code> اتظبطوا عشان يفضلوا <b>متطابقين حرفيًا</b> مع نسخة الهب (<code>print.html</code>) بعد ما الهب ضاف إعادة طباعة أوردر خرج من الطابور. <b>صفر تغيير سلوك هنا</b> — الحقلين (<code>reprint</code> · <code>forceType</code>) مفيش حاجة في الأداة المستقلة بتحطهم. الفرق الوحيد المسموح بين الملفين لسه سطر <code>gateLink</code>.</span></div>
+          <div class="cl-item"><span class="cl-tag change">تغيير</span><span><code>MIN_WORKER_VERSION</code> <b>فضلت <code>2.3.0</code></b> مع إن الـ Worker بقى <code>2.4.0</code> — الواجهة دي مش بتنادي <code>/lookup</code> ومش بتبعت <code>type</code>، فترفيع الحد الأدنى كان هيولّع تحذير كاذب على أي rollback مشروع (Standards #29).</span></div>
+        </div>
+      </div>
+
+      <div class="cl-entry">
+        <div class="cl-head">
+          <span class="cl-ver">v3.5.0</span>
           <span class="cl-date">06-09-2026</span>
         </div>
         <div class="cl-list">
@@ -1651,7 +1662,7 @@ function apiGet(action, params = {}) {
 // ══════════════════════════════════════════════════════════════
 // §SHELL-JS
 // ══════════════════════════════════════════════════════════════
-const TOOL_VERSION = "3.5.0";
+const TOOL_VERSION = "3.5.1";
 // أقل نسخة Worker الواجهة دي بتشتغل معاها — v2.0.0 هي اللي ضافت
 // verify_employee/get_employees/diag/get_config واللي /track بيطلب فيها employee.
 // ⚠️ مالهاش أي علاقة بـ TOOL_VERSION — متزامنهمش.
@@ -2593,7 +2604,12 @@ async function runPreprintGate(selected) {
   const rows = selected.map(o => {
     const entry = todayMap[String(o.name).replace("#", "")] || null;
     const recent = entry && new Date(entry.timestamp).getTime() > cutoff ? entry : null;
-    const level = o.flag ? o.flag : (recent ? "recent" : (o.count > 0 ? "printed" : "clean"));
+    // ⚠️ `o.reprint` — **مفيش حاجة في الأداة المستقلة بتحطه**، وده مقصود:
+    //    كود البوابة مكرّر حرفيًا بين الملف ده و`print.html` بتاع الهب،
+    //    والفرق الوحيد المسموح هو سطر `gateLink`. سطر متطابق ميّت هنا أأمن
+    //    من سطرين مختلفين يفترقوا مع أول تعديل (درس R1). كارت إعادة الطباعة
+    //    في الهب هو اللي بيولّع الفلاج ده.
+    const level = o.flag ? o.flag : (recent ? "recent" : ((o.count > 0 || o.reprint) ? "printed" : "clean"));
     return { order: o, level, recent };
   });
 
@@ -2735,7 +2751,10 @@ async function executePrint(selectedOrders, guards = {}) {
     //    كرسالة CORS واحدة، صفر فاتورة، وصفر صف في D1.
     let fetched = 0;
     const settled = await mapLimit(selectedOrders, PRINT_CONCURRENCY, async (o) => {
-      const d = await apiPath("/invoice", { orderId: o.id });
+      // ⚠️ `forceType` — نفس السبب اللي فوق: مفيش حاجة هنا بتحطه، والسطر
+      //    متطابق مع الهب عن قصد. الـ Worker من غير `type` بيتصرّف حرفيًا
+      //    زي v2.3.0، فالمسار ده صفر تغيير سلوك.
+      const d = await apiPath("/invoice", { orderId: o.id, ...(o.forceType ? { type: o.forceType } : {}) });
       fetched++;
       showPrintLoading(`جاري تحضير الفواتير... ${fetched.toLocaleString("en-US")}/${total.toLocaleString("en-US")}`);
 
