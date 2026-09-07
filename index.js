@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.5.0)
+// EcomModa — Order Printer (v2.6.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 ·
 //         bosta-api-helper — 07-09-2026
 //
@@ -28,6 +28,18 @@
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
 //
+// CHANGES (v2.6.0) — §STATUS-AFTER:
+//   - `/track` بقى بيرجّع `statusAfter` جنب `statusBefore`: الحالة اللي
+//     الأوردر عليها **بعد** المحاولة، متأكَّدة من رد `metafieldsSet` نفسه.
+//   - 🔴 **ليه:** `/orders` بيفلتر بـ `metafields.custom.manual_status` عبر
+//     فهرس بحث شوبيفاي، والفهرس ده **مش فوري**. فالتحديث اللي بيحصل بعد
+//     الطباعة على طول بيرجّع الأوردر المطبوع **وهو لسه في الطابور** —
+//     الموظف بيشوفه قدامه فيفتكر إن الطباعة ما اتسجّلتش. الواجهة بتشيله
+//     بـ `statusAfter` وتفضل شايلاه لحد ما الفهرس يلحق.
+//   - إضافة **بحتة**: الحقل جديد وبس، وكل اللي قبله زي ما هو بالحرف.
+//     `MIN_WORKER_VERSION` في الأداة المستقلة **ما اترفعش** (Standards #29) —
+//     وكمان الهب مابيعتمدش عليه: من غيره بيرجع لـ `status === 'success'`.
+
 // CHANGES (v2.5.0) — دمج طباعة بوليصة بوسطة:
 //   - 🔴 القناة الأكبر في المتجر بقى لها طابور. `custom.zone = Other_Regions`
 //     معناه **بوسطة** (`ecommoda-order-lifecycle` → `zone-routing.md`)، وكان
@@ -150,7 +162,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.5.0';
+const WORKER_VERSION = '2.6.0';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -1579,7 +1591,9 @@ async function setStatusToReady(env, token, gid, type, statusBefore, actions) {
   // الحالة الحالية = الهدف → مفيش تحوّل أصلاً (إعادة طباعة). مش خطأ ومش كتابة.
   if (statusBefore === target) {
     actions.push(`الحالة بالفعل ${target} — مفيش تغيير`);
-    return { written: false, skipped: 'same_value' };
+    // ⚠️ `after` بيترجّع هنا كمان مع إن مفيش كتابة — `statusAfter` في الرد
+    //    بيوصف **الحالة اللي الأوردر عليها دلوقتي**، مش «إيه اللي اتكتب».
+    return { written: false, skipped: 'same_value', before: statusBefore, after: target };
   }
 
   // ⚠️ ارفض + سجّل — عمرها ما تسمح في صمت (lifecycle §1.4)
@@ -1731,10 +1745,21 @@ async function handleTrack(request, env) {
   ];
 
   let statusChange = null;
+  // 🔴 §STATUS-AFTER (v2.6.0) — الحالة **بعد** المحاولة، مش «إيه اللي اتكتب».
+  //    الواجهة بتشيل الأوردر من طابور الطباعة بناءً عليها فورًا، بدل ما
+  //    تستنى فهرس بحث شوبيفاي يلحق (`/orders` بيفلتر بـ
+  //    `metafields.custom.manual_status` — والفهرس ده **غير فوري**، فأوردر
+  //    اتطبع خلاص بيفضل ظاهر في الطابور لثواني بعد التحديث).
+  //    ⚠️ القيمة دي **متأكَّدة من رد شوبيفاي نفسه**: `setStatusToReady`
+  //       بتقرا القيمة اللي رجعت من `metafieldsSet` وبترمي لو مش مطابقة —
+  //       فـ `after` عمرها ما بتترجّع على كتابة ما اتأكدتش.
+  //    وبتفضل `statusBefore` لو الكتابة فشلت أو القراءة الأولى فشلت:
+  //    الاتجاه الآمن «الأوردر لسه في الطابور» مش العكس.
+  let statusAfter = statusBefore;
   if (statusReadOk) {
     tasks.push(
       setStatusToReady(env, token, gid, type, statusBefore, actions)
-        .then(r => { if (r.written) statusChange = r; })
+        .then(r => { if (r.written) statusChange = r; if (r.after) statusAfter = r.after; })
         .catch(e => { errors.push(`الحالة: ${e.message}`); })
     );
   }
@@ -1798,6 +1823,7 @@ async function handleTrack(request, env) {
     type,                 // الماكينة — الواجهة بتقابل بيها الأوردر
     doc,                  // المستند — عشان نافذة النتيجة تقول اتطبع إيه
     statusBefore,
+    statusAfter,          // §STATUS-AFTER — «الأوردر خرج من الطابور؟» (v2.6.0)
     logged, logError,
   }, 200, request);
 }
