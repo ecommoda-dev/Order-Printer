@@ -28,6 +28,39 @@
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
 //
+// CHANGES (v2.7.0) — §LOG-CHAN + §ITEMS:
+//   - 🔴 **§LOG-CHAN — `extra.zone` بقى بيتكتب على كل صف طباعة.** السبب: تاب
+//     السجل في الهب كان فيه عمود واحد اسمه «نوع الفاتورة» بيعرض
+//     `AWB` / `عادي` / `استبدال-استرجاع` — وده **خلط بين حاجتين**: `AWB`
+//     مستند، و`عادي`/`استبدال` نوع أوردر. الفصل لعمودين محتاج معلومتين:
+//       · **نوع الأوردر**  ← `type` لصفوف S1/S2، و`extra.machine` لصفوف AWB
+//                            (بتتكتب من v2.5.0 خلاص)
+//       · **نوع الفاتورة** ← `AWB` → بوسطة · و`extra.zone` لصفوف S1/S2
+//     الزون هو **الناقص الوحيد**، وما كانش بيتكتب في أي صف.
+//   - 🔴 **الزون بيتقرا من شوبيفاي وقت الطباعة، مش من العميل.** بيركب على
+//     `STATUS_QUERY` القايمة أصلاً (ميتافيلد واحد زيادة · صفر نداء إضافي).
+//     قيمة جاية من الواجهة كانت هتسجّل «اللي الشاشة فاكراه» مش «اللي الأوردر
+//     كان عليه» — والزون **بيتغيّر بعد الطباعة** فعلاً.
+//     ⚠️ `readCurrentStatus` بقت بترجّع `{ status, zone }` بدل نص.
+//   - `/logs` بقى بيرجّع `machine` و`zone` بـ `json_extract` من `extra` —
+//     **صفر تعديل schema · صفر migration**، و`extra` الكامل مابيترجّعش
+//     (حمولة تقيلة على ٥٬٠٠٠ صف بلا داعي).
+//     ⚠️ الاتنين `null` على الصفوف القديمة — الواجهة بتعرض `—` ومابتخمّنش.
+//   - **§ITEMS — أصناف الأوردر في تمريرة تانية** (`nodes(ids:)`)، وبتتنفّذ
+//     **بس** لما `body.items === 'printed'` وعلى الأوردرات اللي عليها تاج
+//     `Printed(...)` بس. `LIST_QUERY` (`first: 250` × ٤ بالتوازي) **ما
+//     اتلمستش**، والشاشة الرئيسية بتاعة الهب مابتبعتش الباراميتر فمابتدفعش
+//     تكلفته. القياس الحي 09-09-2026: ٢١ أوردر في الطابور، **٢** منهم عليهم
+//     تاج طباعة = نداء واحد إضافي.
+//     ⚠️ فشلها بيرجع في `itemsError` و**مايوقّفش الطابور**.
+//   - `/orders` بقى بيرجّع `itemsQty` (`currentSubtotalLineItemsQuantity` —
+//     scalar بصفر تكلفة) و`printedAny` لكل صف.
+//   - ⚠️ `MIN_WORKER_VERSION` في الأداة المستقلة **ما اترفعش** (`2.3.0` زي ما
+//     هي): مابتقراش `machine`/`zone`/`itemsQty` ومابتبعتش `items`، فترفيعه
+//     كان هيولّع تحذير كاذب على أي rollback مشروع (Standards #29).
+//     **الهب** هو اللي بيرفع `printer.min` لـ `2.7.0` — عمود «نوع الفاتورة»
+//     في تاب السجل **مش موجود أصلاً** من غير `zone`.
+
 // CHANGES (v2.6.0) — §STATUS-AFTER:
 //   - `/track` بقى بيرجّع `statusAfter` جنب `statusBefore`: الحالة اللي
 //     الأوردر عليها **بعد** المحاولة، متأكَّدة من رد `metafieldsSet` نفسه.
@@ -162,7 +195,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.6.0';
+const WORKER_VERSION = '2.7.0';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -193,6 +226,70 @@ const ZONE_FILTER = [ZONE.CAIRO_GIZA, ZONE.SHOWROOM];
 
 // سقف قراءة سجل الطباعة في /logs — بيرجع للواجهة كـ cap عشان التقصّ يبان
 const LOGS_FETCH_MAX = 5000;
+
+// §ITEMS (v2.7.0) — أصناف الأوردر في **تمريرة تانية**، مش جوّه صفحة الـ 250.
+//
+// 🔴 **ليه تمريرة منفصلة والقياس بيقول إن الضمّ عدّى؟** لأن `LIST_QUERY`
+//    بتتنادى **أربع مرات بالتوازي** على `first: 250`. ضمّ `lineItems` جوّاها
+//    بيضاعف تكلفة **أتقل استعلام في الأداة** أربع مرات في نفس اللحظة، وبيخلّي
+//    كل نداء لـ `/orders` أتقل — بما فيهم نداء **الشاشة الرئيسية** اللي
+//    بيجيب **عدّاد** وبس. التمريرة دي بتتنفّذ على الأوردرات اللي **سبق
+//    طباعتها فقط** (٢ من ٢١ في القياس الحي 09-09-2026)، ومابتتنادى أصلاً من
+//    غير `items` في جسم الطلب.
+//
+// ⚠️ سلسلة السقوف التلاتة — ولا واحد منهم يتقري لوحده:
+//    ① `ITEMS_ORDERS_PER_QUERY = 25` أوردر في نداء `nodes(ids:)` الواحد
+//    ② `ITEMS_PER_ORDER = 50` بند لكل أوردر — والقصّ **بيتبلّغ** مش بيتبلع
+//    ③ `LIST_QUERY` نفسها `first: 250` وما اتلمستش
+const ITEMS_ORDERS_PER_QUERY = 25;
+const ITEMS_PER_ORDER        = 50;
+
+// ⚠️ `currentQuantity` مش `quantity` — التانية بتفضل على قيمتها الأصلية على
+//    السطر المتشال أو المرتجع، يعني بترجّع قطعة **مش خارجة** كأنها خارجة.
+//    متقاس على `#52273`: `GT1 / White / 45` راجع بـ 0 و`GT1 / White / 44`
+//    بديل بـ 1 — من غير الفلتر الموظف بيقرا المقاس **الراجع**.
+// ⚠️ `pageInfo { hasNextPage }` إلزامية مع أي `first: N` ثابتة — من غيرها
+//    القصّ صامت (`shopify-graphql-helper` Step 4).
+const ITEMS_QUERY = `
+  query OrderItems($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Order {
+        id
+        lineItems(first: ${ITEMS_PER_ORDER}) {
+          pageInfo { hasNextPage }
+          nodes { currentQuantity sku title }
+        }
+      }
+    }
+  }
+`;
+
+// بترجّع `{ map, truncated }` — والفشل بيترمي للمستدعي اللي بيحوّله لتحذير،
+// مش لفشل الطابور: الأصناف **معلومة مساعدة**، والطابور شغل الموظف.
+async function fetchOrderItems(env, token, orders) {
+  const map = {};
+  const truncated = [];
+
+  for (let i = 0; i < orders.length; i += ITEMS_ORDERS_PER_QUERY) {
+    const slice = orders.slice(i, i + ITEMS_ORDERS_PER_QUERY);
+    const data  = await shopifyGQL(
+      env, token, ITEMS_QUERY,
+      { ids: slice.map(o => o.id) },
+      `order_items_${i / ITEMS_ORDERS_PER_QUERY + 1}`
+    );
+
+    for (const node of (data?.data?.nodes || [])) {
+      if (!node?.id) continue;                       // filter(Boolean) — أوردر مش موجود
+      const li = node.lineItems || {};
+      map[node.id] = (li.nodes || [])
+        .filter(x => (x.currentQuantity || 0) > 0)   // ⬅️ الفلتر اللي فوق
+        .map(x => ({ qty: x.currentQuantity, sku: x.sku || null, title: x.title || null }));
+      if (li.pageInfo?.hasNextPage) truncated.push(node.id);
+    }
+  }
+
+  return { map, truncated };
+}
 
 // §CONSTANTS::status — النصوص حرفية، والحالة (casing) محمولة للمعنى.
 // حرف واحد مختلف بيرجّع صفر صفوف **من غير أي error**.
@@ -942,6 +1039,7 @@ const LIST_QUERY = `
       edges {
         node {
           id legacyResourceId name createdAt tags
+          currentSubtotalLineItemsQuantity
           totalPriceSet        { shopMoney { amount } }
           currentTotalPriceSet { shopMoney { amount } }
           customer { firstName lastName }
@@ -991,6 +1089,14 @@ async function handleOrders(request, env) {
   //    (أحمد 07-09-2026) وبتنادي نفس الـ endpoint من غير الباراميتر ده،
   //    فلازم يفضل بيشوف نفس القايمة بالظبط. الهب بس هو اللي بيبعت true.
   const allZones = body.allZones === true;
+
+  // 🔴 §ITEMS — `items: 'printed'` بيطلب **أصناف الأوردرات اللي سبق طباعتها بس**.
+  //    الافتراضي **مفيش** (`null`)، يعني السلوك القديم بالحرف: `Order-Printer`
+  //    المستقلة و`index.html` بتاع الهب (عدّاد الشاشة الرئيسية) الاتنين
+  //    مابيبعتوش الباراميتر ده، فمابيدفعوش تكلفة بيانات مابيعرضوهاش.
+  //    ⚠️ أي قيمة تانية = مفيش أصناف. الرفض الصامت مقصود هنا: ده باراميتر عرض،
+  //       وخطأ فيه مايستاهلش إن الطابور كله يرجع 400 والموظف يقف.
+  const wantItems = body.items === 'printed' ? 'printed' : null;
 
   const token = await getAccessToken(env);
 
@@ -1049,11 +1155,45 @@ async function handleOrders(request, env) {
     zoneKnown: !!o.zone?.value && Object.values(ZONE).includes(o.zone.value),
     channel:   ZONE_CHANNEL[o.zone?.value] || null,   // 'invoice' · 'awb' · null
 
+    // عدد القطع اللي **هتخرج فعلاً** — `currentSubtotalLineItemsQuantity` بيجمع
+    // `currentQuantity` مش `quantity`، فأوردر الاستبدال بيرجّع **البديل بس** مش
+    // القطعة الراجعة معاه. متأكَّد حيًا على `#52273` و`#54087` (09-09-2026).
+    // ⚠️ scalar — تكلفته صفر نقاط، فهو راجع على **كل** الصفوف بلا شرط.
+    itemsQty:  typeof o.currentSubtotalLineItemsQuantity === 'number'
+                 ? o.currentSubtotalLineItemsQuantity : null,
+
     tags:      o.tags || [],
     isPrinted: (o.tags || []).includes(`Printed(${o.type})`),
+
+    // 🔴 «سبق طباعته بأي شكل» — **أوسع** من `isPrinted` عن قصد. `isPrinted`
+    //    بيسأل عن ماكينة الصف الحالي (`Printed(S2)` لصف S2)، وأوردر اتطبع S1
+    //    وبعدين دخل دورة استبدال بيرجّع `false` عنده — بينما الورقة القديمة
+    //    **موجودة في المخزن** وأصنافها هي بالظبط اللي الموظف عايز يشوفها.
+    printedAny: (o.tags || []).some(t => String(t).startsWith('Printed(')),
   }));
 
   allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // §ITEMS — التمريرة التانية. ⚠️ **فشلها مايوقّفش الطابور أبدًا**: الأصناف
+  // معلومة مساعدة، والطابور هو شغل الموظف. الفشل بيرجع في `itemsError` والواجهة
+  // بتقول السبب في الخانة — نفس مبدأ «فشل جلب السجل مايمنعش الطباعة».
+  let itemsError = null, itemsTruncated = [];
+  if (wantItems === 'printed') {
+    const targets = allOrders.filter(o => o.printedAny);
+    if (targets.length) {
+      try {
+        const { map, truncated } = await fetchOrderItems(env, token, targets);
+        for (const o of allOrders) if (map[o.id]) o.items = map[o.id];
+        // القصّ بيترجّع **بأسماء الأوردرات** مش بعدد — «فيه قص» من غير أسماء
+        // يعني الموظف مايعرفش يراجع فين (نفس قاعدة `itemsTruncated` في الباركود).
+        itemsTruncated = truncated
+          .map(gid => (allOrders.find(o => o.id === gid) || {}).name)
+          .filter(Boolean);
+      } catch (e) {
+        itemsError = e.message;
+      }
+    }
+  }
 
   return json({
     ok:           true,
@@ -1062,6 +1202,9 @@ async function handleOrders(request, env) {
     zoneExcluded,
     zoneFilter:   ZONE_FILTER,
     allZones,
+    items:        wantItems,
+    itemsError,
+    itemsTruncated,
     fetchedAt:    new Date().toISOString(),
     source:       'shopify',
   }, 200, request);
@@ -1089,6 +1232,7 @@ async function handleOrders(request, env) {
 
 const LOOKUP_FIELDS = `
   id legacyResourceId name createdAt tags
+  currentSubtotalLineItemsQuantity
   totalPriceSet        { shopMoney { amount } }
   currentTotalPriceSet { shopMoney { amount } }
   customer { firstName lastName }
@@ -1166,8 +1310,13 @@ function shapeLookupOrder(node) {
     total:         parseFloat(node.currentTotalPriceSet?.shopMoney?.amount
                               ?? node.totalPriceSet?.shopMoney?.amount ?? 0),
     totalOriginal: parseFloat(node.totalPriceSet?.shopMoney?.amount || 0),
+    // 🔴 §COLS (v2.7.0) — تنفيذًا للقاعدة فوق: أي حقل جديد في صف `/orders`
+    //    بيتضاف هنا في **نفس التمريرة**. كارت إعادة الطباعة بيبني نفس الصف.
+    itemsQty:  typeof node.currentSubtotalLineItemsQuantity === 'number'
+                 ? node.currentSubtotalLineItemsQuantity : null,
     tags,
-    isPrinted: tags.includes(`Printed(${type})`),
+    isPrinted:  tags.includes(`Printed(${type})`),
+    printedAny: tags.some(t => String(t).startsWith('Printed(')),
   };
 }
 
@@ -1202,6 +1351,19 @@ async function handleLookup(request, env) {
   }
 
   const order = shapeLookupOrder(node);
+
+  // §ITEMS — أصناف أوردر **واحد** عند الطلب (`items: true`). ده مسار زرار
+  // «👁 عرض» في جدول الطابور: الموظف بيسأل عن صف بعينه، فالتكلفة نداء واحد
+  // على أوردر واحد. ⚠️ الفشل **مايوقّفش الرد** — الأصناف معلومة مساعدة،
+  // والكارت ده مسار إعادة الطباعة اللي مايصحّش يقع عشان خانة عرض.
+  if (body?.items === true) {
+    try {
+      const { map } = await fetchOrderItems(env, token, [order]);
+      order.items = map[order.id] || [];
+    } catch (e) {
+      order.itemsError = e.message;
+    }
+  }
 
   // `undefined`/`null` مش في `ZONE_FILTER` — فالأوردر اللي مالوش منطقة خالص
   // بيتحسب مستبعَد، وده **نفس** سلوك `/orders` بالظبط مش تشديد جديد.
@@ -1520,23 +1682,35 @@ async function handleInvoice(request, env) {
 // بيقرا الحالة الحالية قبل أي كتابة — ده شرط تنفيذ قاعدة التحوّل
 // (ecommoda-order-lifecycle §1.4): ممنوع تكتب حالة من غير ما تعرف الحالة اللي
 // قبلها. وهو كمان مصدر value_before في سجل metafields_change.
+// ⚠️ `zone` اتضاف في v2.7.0 — ميتافيلد واحد زيادة على استعلام **قايم أصلاً**
+//    (تكلفته نقطة واحدة، وصفر نداء إضافي). الغرض الوحيد: `extra.zone` في صف
+//    السجل. 🔴 والقراءة من **شوبيفاي وقت الطباعة** مش من العميل بقرار: الزون
+//    بيتغيّر بعد الطباعة (١٨٪ من عناوين القاهرة بتروح بوسطة والقرار بيتراجع)،
+//    وقيمة جاية من الواجهة معناها إن السجل بيسجّل **اللي الشاشة كانت فاكراه**
+//    مش اللي الأوردر كان عليه فعلاً.
 const STATUS_QUERY = `
   query OrderStatus($id: ID!) {
     order(id: $id) {
       id name
       manual_status: metafield(namespace: "custom", key: "manual_status") { value }
       status_2_r_e:  metafield(namespace: "custom", key: "status_2_r_e")  { value }
+      zone:          metafield(namespace: "custom", key: "zone")          { value }
     }
   }
 `;
 
+// بترجّع **كائن** من v2.7.0 — كانت بترجّع الحالة كنص. أي مستدعي بيقرا القيمة
+// مباشرةً بيبقى `[object Object]` في `value_before`، فالاستدعاء الوحيد اتغيّر معاها.
 async function readCurrentStatus(env, token, gid, type) {
   const data  = await shopifyGQL(env, token, STATUS_QUERY, { id: gid }, 'orderStatus');
   const order = data?.data?.order;
   if (!order) throw new Error('الأوردر غير موجود على شوبيفاي');
-  return type === 'S2'
-    ? (order.status_2_r_e?.value  ?? null)
-    : (order.manual_status?.value ?? null);
+  return {
+    status: type === 'S2'
+      ? (order.status_2_r_e?.value  ?? null)
+      : (order.manual_status?.value ?? null),
+    zone: order.zone?.value || null,
+  };
 }
 
 // ─── §PRINT::tagOrder ───
@@ -1728,9 +1902,13 @@ async function handleTrack(request, env) {
   const token = await getAccessToken(env);
 
   // ① الحالة الحالية — من غيرها مفيش تحقق من التحوّل ومفيش value_before
-  let statusBefore = null, statusReadOk = true;
+  //    ⚠️ و`zone` بييجي من **نفس** النداء — لو القراءة فشلت بيفضل `null`،
+  //       وصف السجل بيتكتب **من غير زون** بدل ما يخمّن. «مش معروف» بتفضل فاضية.
+  let statusBefore = null, statusReadOk = true, orderZone = null;
   try {
-    statusBefore = await readCurrentStatus(env, token, gid, type);
+    const cur    = await readCurrentStatus(env, token, gid, type);
+    statusBefore = cur.status;
+    orderZone    = cur.zone;
   } catch (e) {
     statusReadOk = false;
     warnings.push(`تعذّر قراءة الحالة الحالية — الحالة ما اتغيّرتش: ${e.message}`);
@@ -1807,6 +1985,13 @@ async function handleTrack(request, env) {
       notes:     actions.join(' · ') || 'مفيش أي فعل تم',
       extra:     {
         result: { status, actions, warnings, errors, statusBefore, statusLogged },
+        // 🔴 §LOG-CHAN (v2.7.0) — الزون وقت الطباعة، على **كل** صف مش صفوف
+        //    بوسطة بس. من غيره عمود «نوع الفاتورة» في تاب السجل مستحيل يتبني:
+        //    `type` بيقول `S1`/`S2` (= فاتورة) لكن **مايقولش مناديب ولا شو روم**،
+        //    والزون الحالي بتاع الأوردر مش جواب — هو بيتغيّر بعد الطباعة.
+        //    ⚠️ بيتساب بره لو `null` — `json_extract` بترجّع NULL في الحالتين،
+        //       و«مش معروف» أحسن من قيمة مخمّنة.
+        ...(orderZone ? { zone: orderZone } : {}),
         ...(doc === 'AWB' ? { doc, machine: type, bosta } : {}),
         ...(guard ? { guard } : {}),
       },
@@ -1970,6 +2155,30 @@ async function handleBostaAWB(request, env) {
   }, 200, request);
 }
 
+// ─── §PRINT::logRowChannel ───
+// «الصف ده اتطبع على أنهي قناة؟» — بترجّع مفتاح القناة زي ما الواجهة بتسمّيه
+// في `CHANNELS` (`invoice` · `showroom` · `awb`)، أو `null` = **مش معروف**.
+//
+// 🔴 **الاشتقاق هنا في الـ Worker بقرار، مش في الواجهة.** الواجهة **مالهاش
+//    خريطة زون→قناة** — `wocChannelOf` في `shared/shell.js` بتقرا `o.channel`
+//    اللي الـ Worker بيحسبه من `ZONE_CHANNEL`، والقاعدة المكتوبة في
+//    `Warehouse-Operations-Center/CLAUDE.md` صريحة: **⛔ ممنوع أي خريطة
+//    زون→قناة تانية في أي صفحة** (خريطتان = يفترقوا مع أول تعديل · درس R1).
+//    فالصف بيوصل للواجهة **بقناته جاهزة**، وهي بتعرض الاسم وبس.
+//
+// ⚠️ `AWB` بيتحدد من عمود `type` **مش من الزون** — ده أقوى دليل موجود: المستند
+//    اللي خرج فعلاً من الطابعة. والزون بيتقرا **بعده** بس.
+// ⚠️ `null` بترجع للصفوف القديمة (قبل v2.7.0) ولأي زون غير معروف. الواجهة
+//    بتعرض `—`، ⛔ وممنوع تعوّضها بزون الأوردر الحالي — ده **تخمين**: الزون
+//    بيتغيّر بعد الطباعة.
+function logRowChannel(r) {
+  if (r.type === 'AWB') return 'awb';
+  if (!r.zone) return null;
+  if (r.zone === ZONE.SHOWROOM) return 'showroom';
+  const ch = ZONE_CHANNEL[r.zone];              // ← نفس الخريطة الوحيدة
+  return ch === 'invoice' ? 'invoice' : (ch === 'awb' ? 'awb' : null);
+}
+
 // ─── §PRINT::handleLogs ───
 // سجل الطباعة بعدّاد لكل أوردر (الواجهة بتبني منه isPrinted + "طُبع كام مرة").
 // ⚠️ بيقص عند LOGS_FETCH_MAX — والتقصّ بيرجع صراحةً عشان مايبانش نجاح كامل.
@@ -1989,8 +2198,21 @@ async function handleLogs(request, env) {
   };
   if (type && type !== 'all') filters.types = [type];
 
+  // 🔴 §LOG-CHAN (v2.7.0) — عمودان مشتقان من `extra` بـ `json_extract`:
+  //    **صفر تعديل schema · صفر migration.** الاختيار ده مقصود: `extra` كامل
+  //    على ٥٬٠٠٠ صف حمولة تقيلة بلا داعي، والواجهة محتاجة مفتاحين بس.
+  //    - `machine` = `S1`/`S2` **لصفوف بوسطة** (بتتكتب من v2.5.0) — هي اللي
+  //      بتدي «نوع الأوردر» لصف `type = 'AWB'`، لأن عمود `type` هناك بيوصف
+  //      المستند مش الماكينة.
+  //    - `zone`    = زون الأوردر وقت الطباعة (بيتكتب من v2.7.0) — هي اللي
+  //      بتدي «نوع الفاتورة» لصفوف `S1`/`S2`.
+  //    ⚠️ الاتنين `null` على الصفوف القديمة — والواجهة بتعرض `—`. ممنوع
+  //       تعويضها بزون الأوردر الحالي: ده تخمين، والتفاصيل في
+  //       `Warehouse-Operations-Center/CLAUDE.md` §LOG-CHAN.
   const { sql, b } = buildLogFilterSQL(
-    'SELECT order_name, type, timestamp, employee', filters);
+    "SELECT order_name, type, timestamp, employee, " +
+    "json_extract(extra, '$.machine') AS machine, " +
+    "json_extract(extra, '$.zone')    AS zone", filters);
 
   const [{ results }, total] = await Promise.all([
     env.DB.prepare(sql + ' ORDER BY timestamp DESC LIMIT ?').bind(...b, LOGS_FETCH_MAX).all(),
@@ -2002,6 +2224,9 @@ async function handleLogs(request, env) {
     type:        r.type,
     timestamp:   r.timestamp,
     employee:    r.employee,
+    machine:     r.machine || null,   // S1 · S2 — على صفوف AWB بس (v2.5.0+)
+    zone:        r.zone    || null,   // زون وقت الطباعة الخام (v2.7.0+)
+    chan:        logRowChannel(r),    // مناديب · شو روم · بوسطة · null
   }));
 
   return json({
