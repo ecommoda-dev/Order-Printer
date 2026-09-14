@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.8.0)
+// EcomModa — Order Printer (v2.8.1)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 ·
 //         bosta-api-helper — 07-09-2026
 //
@@ -27,6 +27,24 @@
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.8.1) — إصلاح: حارس S1-only فاضل في `/track` كان بيبطّل v2.8.0:
+//   - 🔴 **الباج:** v2.8.0 عملت كل شغل اختيار الشحنة صح (البوليصة الصح
+//     بتتجاب فعلاً — متأكَّد حيًا على `#53822`: الملصق طلع بـ
+//     `3910036921` = `bosta_tracking_number_s2` ومكتوب عليه «تبديل شحنة»)،
+//     **بس `handleTrack` كان لسه فيه حارس عند مدخله**:
+//     `if (doc === 'AWB' && type !== 'S1') return 400`.
+//   - 🔴 **والأثر كان أسوأ من رفض بسيط:** `/track` بيتنادى **بعد** ما
+//     البوليصة اتجابت من بوسطة، والـ PDF بيتفتح **بغض النظر** عن نتيجته.
+//     يعني الورق خرج من الطابعة و**مفيش تاج ولا `printing_time_s2` ولا
+//     صف في D1**، والأوردر فضل في الطابور كأنه ما اتطبعش.
+//   - ✅ الحارس اتشال، وباقي المسار ما اتلمسش ولا سطر: `tagOrder` و
+//     `setPrintingTimeMetafield` و`setStatusToReady` و`readCurrentStatus`
+//     كلهم بيفرّعوا على `type` صح من الأصل، و`logType` بيفضل `AWB` مع
+//     `extra.machine = type` (فصل «الماكينة» عن «المستند» زي ما هو).
+//   - ⚠️ **الدرس:** فحص المتصفح **مايقدرش** يمسك ده — الـ Worker الوهمي
+//     بيرد على `/track` بنجاح دايمًا. حارس سيرفر-سايد مالوش مقابل في
+//     الاختبار، فمراجعة v2.8.0 عدّت عليه.
 //
 // CHANGES (v2.8.0) — §BOSTA-S2 — قناة بوسطة بقت بتخدم S2 زي S1:
 //   - 🔴 **الحفرة اللي اتقفلت:** `classifyForPrint` كانت بتفلتر على شحنات
@@ -224,7 +242,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.8.0';
+const WORKER_VERSION = '2.8.1';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -1961,10 +1979,17 @@ async function handleTrack(request, env) {
   if (doc !== 'INVOICE' && doc !== 'AWB') {
     return json({ error: `doc غير صالح: "${doc}" — المسموح INVOICE أو AWB` }, 400, request);
   }
-  if (doc === 'AWB' && type !== 'S1') {
-    // طباعة بوسطة **S1 بس** بقرار (أحمد 07-09-2026) — والرفض صريح مش صامت.
-    return json({ error: 'طباعة بوليصة بوسطة متاحة لأوردرات S1 بس دلوقتي' }, 400, request);
-  }
+  // 🔴 **الحارس `doc === 'AWB' && type !== 'S1'` اتشال في v2.8.1** (قرار أحمد
+  //    14-09-2026). كان بينفّذ قرار «طباعة بوسطة S1 بس» بتاع 07-09-2026 —
+  //    والقرار ده **اترجع فيه** في v2.8.0، بس الحارس ده فضل مكانه.
+  // ⚠️ **النتيجة الحيّة قبل الشيل (`#53822`):** البوليصة اتجابت من بوسطة
+  //    واتفتحت قدام الموظف (ورق طلع فعلاً)، و`/track` رجّع `400` — يعني
+  //    **صفر تاج وصفر ميتافيلد وصفر صف في السجل**، والأوردر فضل في الطابور.
+  //    الفشل كان **معلن** (نافذة النتيجة حمرا) بس الورق كان خرج خلاص.
+  // ⛔ **وممنوع يرجع.** أي قصر لبوسطة على S1 مكانه `MACHINE_TYPE_CODES`
+  //    (اختيار الشحنة) — مش هنا: `type` جوّه `/track` هي **الماكينة**، وكل
+  //    اللي تحتها (`tagOrder` · `setPrintingTimeMetafield` ·
+  //    `setStatusToReady` · `readCurrentStatus`) بيفرّع عليها صح من الأصل.
   const logType = doc === 'AWB' ? 'AWB' : type;
   // كل عملية طباعة مربوطة بموظف — عمود employee كان فاضي في كل الصفوف التاريخية
   if (!employee) {
