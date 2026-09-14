@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.6.0)
+// EcomModa — Order Printer (v2.8.0)
 // skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 ·
 //         bosta-api-helper — 07-09-2026
 //
@@ -21,12 +21,41 @@
 //   POST /invoice             → بيانات فاتورة أوردر واحد
 //   POST /track               → تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة Ready
 //   POST /logs                → سجل الطباعة (بعدّاد الطباعة لكل أوردر)
-//   POST ?action=bosta_lookup → تحويل أرقام أوردرات لشحنات بوسطة (قراءة بحتة + not_found)
+//   POST ?action=bosta_lookup → تحويل أرقام أوردرات لشحنات بوسطة **لكل ماكينة** (قراءة بحتة + not_found)
 //   POST ?action=bosta_awb    → جلب البوليصة/البوالص كـ base64 PDF (قراءة بحتة)
 //   GET  ?action=check_employee · POST ?action=register_pin
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.8.0) — §BOSTA-S2 — قناة بوسطة بقت بتخدم S2 زي S1:
+//   - 🔴 **الحفرة اللي اتقفلت:** `classifyForPrint` كانت بتفلتر على شحنات
+//     `Send` **بس**، وأوردر الاستبدال/الاسترجاع عليه **شحنتين** تحت نفس
+//     `businessReference` (شحنة الشحن + شحنة R/E — `bosta-api-helper`
+//     Step 8b ⑦). يعني صف S2 كان هياخد **بوليصة شحنة الشحن**: ملصق غلط على
+//     كرتونة، **بلا أي خطأ**. عشان كده S2 كانت مخفية من الطابور بقرار.
+//   - 🔴 **الفلترة بقت على `type.code` مش على النص** (`bosta-api-helper`
+//     Step 2): `10` Send · `25` استرجاع · `30` استبدال. النص بيختلف حسب
+//     الـ endpoint (`"Exchange"` من `/deliveries/*` مقابل `EXCHANGE` في
+//     الويبهوك)، فأي مقارنة نصية بترجّع **صفر بصمت**. و`shapeDelivery` بقت
+//     بترجّع `typeCode` جنب `type` — الأول للفلترة والتاني للعرض.
+//   - 🔴 **`machine` بقت باراميتر في `?action=bosta_lookup`** (`S1` افتراضيًا
+//     = السلوك القديم بالحرف)، وبترجع **في كل نتيجة**. الواجهة بتتحقق من
+//     رجوعها قبل ما تطبع أي صف S2: غيابها معناه Worker أقدم صنّف بقاعدة
+//     `Send` القديمة، وده **منع طباعة** مش تحذير.
+//   - 🔴 **مفيش رجوع عبر الماكينات.** مفيش شحنة للماكينة المطلوبة =
+//     `machine_mismatch` (سبب جديد) + صف `not_found` في D1 بـ
+//     `extra.machine`. الاستثناء الوحيد: لو **كل** الشحنات نوعها غير معروف،
+//     S1 بترجع لسلوكها القديم (`note: 'no_type_info'`) — و**S2 لأ**.
+//   - ⚠️ **صفر تغيير في مسار الكتابة.** `/track` كان **جينيريك** أصلاً:
+//     `tagOrder` و`setPrintingTimeMetafield` و`setStatusToReady` كلهم بيفرّعوا
+//     على `type`، و`Confirmed + RETURN`/`+ EXCHANGE` → `Ready` مسموحة في
+//     `ALLOWED_TRANSITIONS_S2` من الأصل. الواجهة بقت تبعت `type: 'S2'` مع
+//     `doc: 'AWB'` وخلاص → تاج `Printed(S2)` · `printing_time_s2` ·
+//     `status_2_r_e = Ready`.
+//   - ⚠️ **`MIN_WORKER_VERSION` في الأداة المستقلة ما اترفعش** (`2.3.0` زي ما
+//     هي) — مجمّدة على قاهرة+جيزة ومافيهاش مسار بوسطة أصلاً (Standards #29).
+//     **الهب** هو اللي رفع `printer.min` لـ `2.8.0`.
 //
 // CHANGES (v2.7.0) — §LOG-CHAN + §ITEMS:
 //   - 🔴 **§LOG-CHAN — `extra.zone` بقى بيتكتب على كل صف طباعة.** السبب: تاب
@@ -195,7 +224,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.7.0';
+const WORKER_VERSION = '2.8.0';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -831,11 +860,45 @@ const AWB_BLOCKED_STATES = {
   104: 'مؤرشفة',
 };
 
-// نوع الشحنة الصادرة. ⚠️ `/deliveries/search` بترجّع `Send` (بحرف كبير واحد)
-// بينما الويبهوك بيبعت `SEND` — **قيمتان مختلفتان لنفس المعنى**، فالمقارنة
-// بتتعمل بلا حساسية لحالة الحروف. (`bosta-api-helper` — فخ نوع type التاني)
-const SEND_TYPES = new Set(['send', 'fxf_send']);
-function isSendDelivery(t) { return SEND_TYPES.has(String(t || '').trim().toLowerCase()); }
+// §BOSTA::types — نوع الشحنة. 🔴 **الفلترة على `type.code` مش على النص**
+// (`bosta-api-helper` Step 2): الكود رقم ثابت في كل أشكال الرد، والنص بيتغيّر
+// حسب الـ endpoint — `/deliveries/*` بترجّع `"Send"` · `"Exchange"` ·
+// `"Customer Return Pickup"`، والويبهوك بيبعت `SEND` · `EXCHANGE` ·
+// `CUSTOMER_RETURN_PICKUP`. أي مقارنة على `=== 'EXCHANGE'` بترجّع **صفر بصمت**.
+const BOSTA_TYPE = { SEND: 10, CRP: 25, EXCHANGE: 30 };
+
+// ⚠️ خريطة النص احتياطي **مش بديل**. القياس المعتمد للأكواد جه من
+// `GET /deliveries/business/{tn}`، و`POST /deliveries/search` **ما اتأكدش
+// إنه بيرجّع نفس الشكل** (بوسطة عندها سابقة: الويبهوك بيرجّع شكل تالت).
+// فلو `type` وصل نص بلا كود، بنحوّله بدل ما نقول «نوع مش معروف» — والفلترة
+// نفسها بتفضل على الكود في الحالتين.
+const BOSTA_TYPE_TEXT = {
+  'send': BOSTA_TYPE.SEND, 'fxf_send': BOSTA_TYPE.SEND,
+  'customer return pickup': BOSTA_TYPE.CRP, 'customer_return_pickup': BOSTA_TYPE.CRP,
+  'crp': BOSTA_TYPE.CRP,
+  'exchange': BOSTA_TYPE.EXCHANGE,
+};
+function bostaTypeCode(d) {
+  if (Number.isFinite(d?.typeCode)) return d.typeCode;
+  const t = String(d?.type ?? '').trim().toLowerCase();
+  return BOSTA_TYPE_TEXT[t] ?? null;   // null = **مش عارفين**، مش «نوع تاني»
+}
+
+// 🔴 §BOSTA::machine — أنهي شحنة تخص أنهي ماكينة. ده **قلب دعم S2 على بوسطة**
+//    (v2.8.0): الأوردر بيبقى عليه **شحنتين** تحت نفس `businessReference` —
+//    شحنة `Send` بتاعة S1 وشحنة استرجاع/استبدال بتاعة S2
+//    (`bosta-api-helper` Step 8b ⑦) — والبحث بيرجّعهم **الأحدث أول**.
+//    يعني صف S2 اللي بياخد `deliveries[0]` أو بيفلتر على `Send` بياخد
+//    **بوليصة الشحنة الغلط**: ملصق شحن على كرتونة استبدال، بلا أي خطأ.
+// ⚠️ S2 بتقبل الكودين (٢٥ و٣٠) مع بعض عن قصد — مش خريطة من
+//    `Confirmed + RETURN`/`+ EXCHANGE`. سبب واحد: لو الشحنة اترفعت بنوع
+//    مخالف للحالة (وارد — الرفع يدوي)، الخريطة الصارمة كانت هترجّع «مفيش
+//    شحنة» على شحنة **موجودة قدام الموظف**. وحارس «أكتر من شحنة حيّة =
+//    مابنخمّنش» لسه شغّال جوّه العيلة، فالتوسيع مش تخفيف للحارس.
+const MACHINE_TYPE_CODES = {
+  S1: [BOSTA_TYPE.SEND],
+  S2: [BOSTA_TYPE.CRP, BOSTA_TYPE.EXCHANGE],
+};
 
 // ⚠️ `type: 'SEND'` في جسم البحث **بيتجاهله بوسطة في صمت** ويرجّع كل الأنواع.
 //    الفلترة client-side هي الطريقة الوحيدة (`bosta-api-helper` Step 2).
@@ -913,7 +976,12 @@ function shapeDelivery(d) {
     deliveryId:        d._id || null,
     trackingNumber:    d.trackingNumber || null,
     businessReference: d.businessReference || null,
-    type:              d.type?.value || d.type || null,
+    // 🔴 الاتنين مع بعض: `typeCode` هو اللي **بيتفلتر بيه** (ثابت في كل أشكال
+    //    الرد)، و`type` النص للعرض بس. القراءة من `d.type` مباشرةً بتطبع
+    //    `[object Object]` — الحقل أوبجكت.
+    type:              d.type?.value || (typeof d.type === 'string' ? d.type : null),
+    typeCode:          Number.isFinite(d.type?.code) ? d.type.code
+                       : (Number.isFinite(d.type) ? d.type : null),
     stateCode:         stateCode ?? null,
     stateName:         STATE_MAP[stateCode] || d.state?.value || 'غير معروف',
     cod:               d.cod ?? null,
@@ -968,13 +1036,29 @@ async function bostaSearchRefs(env, refs) {
 // بتقرر: الأوردر ده تنفع تتطبع بوليصته دلوقتي ولا لأ — **ومن غير أي نداء
 // زيادة**، كل البيانات جاية من نداء البحث.
 // بترجّع { ok, selected, reason, deliveries }.
-function classifyForPrint(deliveries) {
+function classifyForPrint(deliveries, machine = 'S1') {
   if (!deliveries.length) {
     return { ok: false, selected: null, reason: 'not_found', deliveries };
   }
 
-  const sends   = deliveries.filter(d => isSendDelivery(d.type));
-  const pool    = sends.length ? sends : deliveries;   // مالقيناش Send؟ ما نقولش «مفيش شحنة»
+  const wantCodes = MACHINE_TYPE_CODES[machine] || MACHINE_TYPE_CODES.S1;
+  const mine      = deliveries.filter(d => wantCodes.includes(bostaTypeCode(d)));
+
+  // 🔴 **مفيش رجوع عبر الماكينات.** لو الأوردر عليه شحنة `Send` بس وإحنا
+  //    بنطبع S2، الرجوع للشحنة دي معناه **ملصق الشحن الأصلي على كرتونة
+  //    الاستبدال** — وده بالظبط الفشل اللي حارس «مابنخمّنش» اتكتب ضده.
+  //    الصف بيطلع من الدفعة باسمه ويقول السبب.
+  let pool = mine;
+  if (!mine.length) {
+    // ⚠️ الاستثناء الوحيد — ومحصور في S1 عن قصد: لو **كل** الشحنات نوعها
+    //    غير معروف (بوسطة غيّرت شكل الرد)، S1 بترجع لسلوكها القديم بالحرف
+    //    بدل ما قناة شغّالة تقع كلها. S2 **مابترجعش**: هي مسار جديد مالوش
+    //    سلوك قديم يتحافظ عليه، والثمن هنا ملصق غلط مش صف مستني.
+    const allUnknown = deliveries.every(d => bostaTypeCode(d) === null);
+    if (machine === 'S1' && allUnknown) pool = deliveries;
+    else return { ok: false, selected: null, reason: 'machine_mismatch', machine, deliveries };
+  }
+
   const live    = pool.filter(d => !(d.stateCode in AWB_BLOCKED_STATES));
   const blocked = pool.filter(d =>   d.stateCode in AWB_BLOCKED_STATES);
 
@@ -989,9 +1073,10 @@ function classifyForPrint(deliveries) {
     return { ok: false, selected: null, reason: 'ambiguous', deliveries };
   }
 
-  // مالقيناش أي شحنة نوعها Send — نمشي بالوحيدة الحيّة، بس بعلامة.
-  const note = sends.length ? null : 'no_send_type';
-  return { ok: true, selected: live[0], reason: null, note, deliveries };
+  // نوع الشحنة مش معروف خالص (مسار S1 الاحتياطي فوق) — ماشيين بالوحيدة
+  // الحيّة، بس **بعلامة**: «ما قدرناش نتأكد من النوع» ≠ «النوع مظبوط».
+  const note = pool === mine ? null : 'no_type_info';
+  return { ok: true, selected: live[0], reason: null, note, machine, deliveries };
 }
 
 // §BOSTA::bostaFetchAWB — بوليصة واحدة
@@ -2039,7 +2124,11 @@ async function handleBostaLookup(request, env) {
   for (const o of orders) {
     const ref  = cleanRef(o.name);
     const list = byRef.get(ref) || [];
-    const cls  = classifyForPrint(list);
+    // 🔴 الماكينة بتيجي **من الواجهة مع كل أوردر** (`machine: 'S1' | 'S2'`)،
+    //    والافتراضي `S1` = السلوك القديم بالحرف لأي مستدعي مابيبعتهاش.
+    //    من غيرها صف S2 بياخد بوليصة شحنة الشحن — فوق في `MACHINE_TYPE_CODES`.
+    const machine = o.machine === 'S2' ? 'S2' : 'S1';
+    const cls  = classifyForPrint(list, machine);
 
     // فرق التحصيل — مش حارس تاني، ده **مُشغِّل** لنفس بوابة المراجعة.
     // قيمته إنه بيمسك الحالة اللي **الحالة نفسها مابتقولش عنها حاجة**:
@@ -2056,16 +2145,26 @@ async function handleBostaLookup(request, env) {
       if (Math.abs(diff) >= 0.01) codMismatch = { cod: Number(cod), total, diff };
     }
 
-    if (cls.reason === 'not_found') notFound.push(o);
+    // ⚠️ `machine_mismatch` بيتسجّل زي `not_found` بالظبط — الاتنين **نفس
+    //    الحقيقة**: مفيش شحنة على بوسطة للماكينة دي، يعني بوابة الرفع
+    //    الإلزامية اتخطّت. الفرق إن التانية بتقول «فيه شحنة بس بتاعة
+    //    ماكينة تانية» — والسطر في السجل بيقول ده بالنص.
+    if (cls.reason === 'not_found' || cls.reason === 'machine_mismatch') {
+      notFound.push({ ...o, machine, reason: cls.reason });
+    }
 
     results.push({
       id:          o.id,
       name:        o.name,
+      // 🔴 الواجهة بتتحقق من الحقل ده قبل ما تطبع أي صف S2 — رد من Worker
+      //    أقدم مافيهوش `machine`، ومعناه إن التصنيف اتعمل بقاعدة `Send`
+      //    القديمة. فالغياب هنا = **منع طباعة** مش تحذير.
+      machine,
       found:       list.length > 0,
       ok:          cls.ok,
-      reason:      cls.reason,          // null · not_found · blocked_state · ambiguous
+      reason:      cls.reason,          // null · not_found · machine_mismatch · blocked_state · ambiguous
       blockedAs:   cls.blockedAs || null,
-      note:        cls.note || null,    // no_send_type
+      note:        cls.note || null,    // no_type_info
       selected:    cls.selected,
       deliveries:  cls.deliveries,
       codMismatch,
@@ -2083,8 +2182,12 @@ async function handleBostaLookup(request, env) {
         type:      'not_found',
         employee,
         orderName: cleanRef(o.name),
-        notes:     'مفيش شحنة على بوسطة بالرقم ده — الأوردر ما اترفعش (أو اترفع بمرجع مختلف)',
-        extra:     { result: 'warning', doc: 'AWB', zone: ZONE.OTHER },
+        notes:     o.reason === 'machine_mismatch'
+                     ? `الأوردر عليه شحنات على بوسطة بس مفيش ولا واحدة بتخص ماكينة ${o.machine} — شحنة ${o.machine === 'S2' ? 'الاسترجاع/الاستبدال' : 'الشحن'} ما اترفعتش`
+                     : 'مفيش شحنة على بوسطة بالرقم ده — الأوردر ما اترفعش (أو اترفع بمرجع مختلف)',
+        // ⚠️ `machine` في `extra` مش زينة — من غيرها صف `not_found` بتاع S2
+        //    مايتفرقش عن بتاع S1 في السجل، والاتنين على **نفس الأوردر**.
+        extra:     { result: 'warning', doc: 'AWB', zone: ZONE.OTHER, machine: o.machine },
       });
     } catch (e) { logged = false; logError = e.message; }
   }
