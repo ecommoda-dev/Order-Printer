@@ -242,7 +242,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.8.1';
+const WORKER_VERSION = '2.8.2';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -704,29 +704,59 @@ function invalidateAccessToken() {
   _tokenInFlight = null;
 }
 
+// 🔴 **retry/backoff — نفس انضباط `shopifyGQL` بالحرف (قرار أحمد 19-09-2026 ·
+//    §٨② في `docs/query-cost-experiment.md` بريبو الهب).** كانت محاولة واحدة
+//    بس، بينما `shopifyGQL` عندها ٣ محاولات وbackoff. الكاش والوعد المشترك
+//    فوق (`_tokenCache`/`_tokenInFlight`) بيمنعوا التكرار **جوّه الـ isolate
+//    ده**؛ الـ retry هنا بيمنع فشل عابر (٤٢٩ لحظي من زحمة الخمس Workers على
+//    نفس الـ Custom App) إنه يتحوّل فورًا لفشل كامل **لما فعلاً نحتاج نداء
+//    OAuth جديد** (كاش فاضي أو منتهي).
 async function fetchAccessToken(env) {
-  const resp = await fetch(`https://${env.SHOP_DOMAIN}/admin/oauth/access_token`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      client_id:     env.CLIENT_ID,
-      client_secret: env.CLIENT_SECRET,
-      grant_type:    'client_credentials',
-    }),
-  });
-  if (!resp.ok) throw new Error(`OAuth failed: ${resp.status}`);
-  const data = await resp.json();
-  if (!data.access_token) throw new Error('No access_token in response');
+  const MAX_ATTEMPTS = 3;
+  let lastErr = null;
 
-  const ttlMs = Number.isFinite(data.expires_in) && data.expires_in > 0
-    ? data.expires_in * 1000
-    : TOKEN_FALLBACK_TTL_MS;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let resp, text;
+    try {
+      resp = await fetch(`https://${env.SHOP_DOMAIN}/admin/oauth/access_token`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          client_id:     env.CLIENT_ID,
+          client_secret: env.CLIENT_SECRET,
+          grant_type:    'client_credentials',
+        }),
+      });
+      text = await resp.text();
+    } catch (e) {
+      lastErr = new Error(`OAuth: فشل الاتصال بشوبيفاي — ${e.message}`);
+      if (attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, 400 * attempt)); continue; }
+      throw lastErr;
+    }
 
-  return {
-    token:     data.access_token,
-    // Math.max عشان توكن قصير العمر (أقل من الهامش) مايبقاش منتهي وهو لسه جديد
-    expiresAt: Date.now() + Math.max(ttlMs - TOKEN_SAFETY_MS, 30 * 1000),
-  };
+    if (!resp.ok) {
+      const retriable = resp.status === 429 || resp.status >= 500;
+      lastErr = new Error(`OAuth failed: ${resp.status} — ${text.slice(0, 180)}`);
+      if (retriable && attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, 700 * attempt)); continue; }
+      throw lastErr;
+    }
+
+    let data;
+    try { data = JSON.parse(text); }
+    catch { throw new Error(`OAuth: رد شوبيفاي مش JSON صالح — ${text.slice(0, 180)}`); }
+    if (!data.access_token) throw new Error('No access_token in response');
+
+    const ttlMs = Number.isFinite(data.expires_in) && data.expires_in > 0
+      ? data.expires_in * 1000
+      : TOKEN_FALLBACK_TTL_MS;
+
+    return {
+      token:     data.access_token,
+      // Math.max عشان توكن قصير العمر (أقل من الهامش) مايبقاش منتهي وهو لسه جديد
+      expiresAt: Date.now() + Math.max(ttlMs - TOKEN_SAFETY_MS, 30 * 1000),
+    };
+  }
+  throw lastErr || new Error('OAuth: فشل غير معروف');
 }
 
 async function getAccessToken(env) {
