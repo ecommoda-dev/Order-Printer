@@ -1,0 +1,29 @@
+{
+  "tool": "order_printer",
+  "since": null,
+  "types": {
+    "login": {
+      "result": null,
+      "stage": null,
+      "desc": "دخول موظف"
+    },
+    "logout": {
+      "result": null,
+      "stage": null,
+      "desc": "خروج موظف"
+    },
+    "not_found": {
+      "result": "warning",
+      "stage": null,
+      "desc": "الأوردر مش موجود أو مفيش شحنة مطابقة للماكينة"
+    },
+    "update": {
+      "result": null,
+      "stage": null,
+      "desc": "تحديث ميتافيلد الحالة بعد طباعة الفاتورة"
+    }
+  },
+  "dynamicTypes": [
+    "logType"
+  ]
+}
