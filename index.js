@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════════════════════
 // §HEADER
 // Worker: order-printer-worker  (ecommoda-dev)
-// EcomModa — Order Printer (v2.8.1)
-// skills: worker-builder v2.0.0 · constants v1.4.3 · order-lifecycle v1.3.0 ·
+// EcomModa — Order Printer (v2.8.3)
+// skills: worker-builder v3.7.0 · constants v3.1.0 · order-lifecycle v1.3.0 ·
 //         bosta-api-helper — 07-09-2026
 //
 // Account: 762c353004e8472b20261fba273bfe8d
@@ -27,6 +27,17 @@
 //   POST ?action=verify_employee · GET ?action=log_logout · GET ?action=get_employees
 //   GET  ?action=get_logs · get_logs_count · get_logs_export
 //   GET  ?action=diag · get_config
+//
+// CHANGES (v2.8.3) — الحارس الديناميكي لقيم اللوج (الطبقة ٥ — worker-builder
+// Step 7-ج) + check-log-values.mjs المصلَّح (كان بيدوّر على `type:` بنقطتين
+// بس، فـ object shorthand كان بيعدّي في صمت):
+//   - `LOG_REGISTRY` جوّه §LOG-REG — مفتاحه الزوج (tool, type)، مبني من
+//     log-values.json بعد تسجيل `S1`/`S2`/`AWB` اللي كانت ناقصة (بتتكتب
+//     من `logType` الديناميكي وماكانوش متسجّلين في `types` أصلاً).
+//   - `writeLog` بقى بيحط `extra._unregistered = true` + UPSERT صامت في
+//     `log_value_alerts` **بعد** الكتابة لأي زوج (tool,type) مش في
+//     `LOG_REGISTRY` — **مفيش رفض كتابة أبدًا**.
+//   - ✅ صفر تغيير في منطق تشغيلي — مراقبة بس.
 //
 // CHANGES (v2.8.1) — إصلاح: حارس S1-only فاضل في `/track` كان بيبطّل v2.8.0:
 //   - 🔴 **الباج:** v2.8.0 عملت كل شغل اختيار الشحنة صح (البوليصة الصح
@@ -242,7 +253,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.8.2';
+const WORKER_VERSION = '2.8.3';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -549,11 +560,76 @@ async function registerPin(db, username, pin) {
   return true;
 }
 
+// ════════════════════════════════════════════════════════════
+// §LOG-REG — الحارس الديناميكي لقيم اللوج (الطبقة ٥ — worker-builder Step 7-ج)
+// ════════════════════════════════════════════════════════════
+// قطعة الأداة دي بس من log-values.json اللي جنبها — بتتحدّث معاه في نفس
+// الـ commit. مفتاحه الزوج (tool, type) عشان `update` بتتكتب تحت
+// `metafields_change` مش تحت `order_printer`.
+const LOG_REGISTRY = {
+  order_printer:      new Set(['login', 'logout', 'not_found', 'S1', 'S2', 'AWB']),
+  metafields_change:  new Set(['update']),
+};
+
+const isRegisteredLogValue = (tool, type) => !!LOG_REGISTRY[tool]?.has(type);
+
+// UPSERT على (source_tool, tool, type) — صف واحد لكل قيمة، hits بيعدّ.
+// الحدث الكامل مش بيضيع: الصف الأصلي موجود في logs وعليه _unregistered،
+// والجدول ده فهرس مش سجل تاني — عشان كده dedupe مش صف لكل حدث.
+const LOG_ALERT_SQL = `
+  INSERT INTO log_value_alerts
+    (source_tool, tool, type, first_seen, last_seen, hits,
+     worker_version, sample_order_name, sample_employee, sample_notes)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(source_tool, tool, type) DO UPDATE SET
+    last_seen         = excluded.last_seen,
+    hits              = log_value_alerts.hits + excluded.hits,
+    worker_version    = excluded.worker_version,
+    sample_order_name = excluded.sample_order_name,
+    sample_employee   = excluded.sample_employee,
+    sample_notes      = excluded.sample_notes,
+    status            = CASE WHEN log_value_alerts.status = 'ignored'
+                             THEN 'ignored' ELSE 'open' END
+`;
+
+// فشل التنبيه ممنوع يأثر على أي حاجة — try/catch صامت. بتجمّع التكرار جوّه
+// نفس الدفعة في صف واحد (hits) قبل ما تكتب — هنا دايمًا entries بعنصر واحد
+// (مفيش writeLogsBatch في الأداة دي)، بس الشكل عام لو اتضافت بعدين.
+async function noteUnregisteredLogValues(db, entries) {
+  const byPair = new Map();
+  for (const e of entries) {
+    const key = `${e.tool}\u0000${e.type}`;
+    const acc = byPair.get(key);
+    if (acc) { acc.hits++; continue; }
+    byPair.set(key, { entry: e, hits: 1 });
+  }
+  const now = new Date().toISOString();
+  for (const { entry, hits } of byPair.values()) {
+    try {
+      await db.prepare(LOG_ALERT_SQL).bind(
+        TOOL_NAME, entry.tool ?? '(بدون tool)', entry.type ?? '(بدون type)',
+        now, now, hits, WORKER_VERSION ?? null,
+        entry.orderName ?? null, entry.employee ?? null,
+        entry.notes ? String(entry.notes).slice(0, 200) : null,
+      ).run();
+    } catch (e) { /* متعمّد: التنبيه فهرس، وفشله أهون من تعطيل الأداة */ }
+  }
+}
+
 /**
  * Write a log entry to D1.
  * Only tool and type are required. All other fields optional (null if not provided).
+ *
+ * 🔴 مفيش رفض كتابة أبدًا — قيمة (tool,type) غير مسجّلة بتتكتب عادي وبتتعلّم
+ *    extra._unregistered، وتنبيه بيتبعت لـ log_value_alerts **بعد** الكتابة
+ *    (Layer 5 — worker-builder Step 7-ج).
  */
 async function writeLog(db, entry) {
+  const unregistered = !isRegisteredLogValue(entry.tool, entry.type);
+  const extra = unregistered
+    ? { ...(entry.extra || {}), _unregistered: true }
+    : entry.extra;
+
   await db.prepare(`
     INSERT INTO logs
       (timestamp, tool, type, employee, order_id, order_name,
@@ -572,8 +648,10 @@ async function writeLog(db, entry) {
     entry.valueBefore  ?? null,
     entry.valueAfter   ?? null,
     entry.notes        ?? null,
-    entry.extra ? JSON.stringify(entry.extra) : null
+    extra ? JSON.stringify(extra) : null
   ).run();
+
+  if (unregistered) await noteUnregisteredLogValues(db, [entry]);   // بعد الكتابة، مش قبلها
 }
 
 const LOG_EXPORT_MAX = 2000;   // سقف التصدير — بيرجع للواجهة كـ `cap`

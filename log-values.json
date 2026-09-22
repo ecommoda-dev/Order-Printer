@@ -18,9 +18,25 @@
       "desc": "الأوردر مش موجود أو مفيش شحنة مطابقة للماكينة"
     },
     "update": {
+      "tool": "metafields_change",
       "result": null,
       "stage": null,
-      "desc": "تحديث ميتافيلد الحالة بعد طباعة الفاتورة"
+      "desc": "تحديث ميتافيلد الحالة بعد طباعة الفاتورة — بيتكتب في السجل المشترك metafields_change مش تحت order_printer"
+    },
+    "S1": {
+      "result": ["success", "warning", "error"],
+      "stage": null,
+      "desc": "صف طباعة على ماكينة S1 (شحن عادي) — فاتورة أو بوليصة بوسطة (extra.doc/machine بيفرّق المستند)"
+    },
+    "S2": {
+      "result": ["success", "warning", "error"],
+      "stage": null,
+      "desc": "صف طباعة على ماكينة S2 (استرجاع/استبدال) — فاتورة أو بوليصة بوسطة"
+    },
+    "AWB": {
+      "result": ["success", "warning", "error"],
+      "stage": null,
+      "desc": "صف طباعة بوليصة بوسطة — logType = doc==='AWB' ? 'AWB' : type. من v2.8.1 بتتكتب على ماكينة S1 أو S2 (extra.machine بيقول الماكينة)، مش S1 بس زي قبل v2.8.0"
     }
   },
   "dynamicTypes": [
