@@ -169,7 +169,9 @@ const NB       = "(?<![A-Za-z0-9_$])";                       // يمنع content
 const RE_TYPEK = new RegExp(`${NB}type\\s*:`, 'g');
 // 🔴 الأشكال الشرعية التانية لمفتاح `type` جوّه أوبجكت — لازم كلها تتشاف،
 //    لأن اللي مايتشافش بيعدّي في صمت (سابقة: index.js:4326 · `type,` shorthand).
-const RE_TYPE_SHORT = /(?<=[{,]\s*)type\s*(?=[,}])/g;          // { tool, type, employee }
+const RE_TYPE_SHORT = /(?<=(?<!\$)[{,]\s*)type\s*(?=[,}])/g;    // { tool, type, employee }
+// ⚠️ الـ(?<!\$) مهم: `${type}` جوّه template literal شكله زي الـshorthand بالظبط
+//    (محاط بـ{ و})، وبيدّي false positive. سابقة: Order-Printer index.js:2101.
 const RE_TYPE_COMP  = /\[\s*(['"])type\1\s*\]\s*:/g;           // { ['type']: x }
 const RE_SPREAD     = /\.\.\.\s*([A-Za-z_$][A-Za-z0-9_$]*)/g;  // { ...base, … }
 const RE_LOCAL_TYPE = /(?:const|let|var)\s+type\s*=/g;         // const type = <expr>;
@@ -350,7 +352,7 @@ for (const file of files) {
       const at   = `${rel}:${lineAt(abs)}`;
       const vals = resolve(raw, CONSTS);
       if (vals) for (const v of vals) add(used, v, at);
-      else add(dynamic, raw.replace(/\s+/g, ' '), at);
+      else add(dynamic, raw.replace(/\s+/g, ' ').slice(0, 120), at);
     };
 
     // (أ) الشكل الصريح: type: <expr>
@@ -412,8 +414,7 @@ for (const [type, meta] of Object.entries(reg.types || {})) {
 // من «حاجة التحقق مش شايفها» لـ«حاجة اتراجعت واتقرر إنها بتتحل وقت التشغيل».
 // من غير الاعتراف ده، التحذير بيبقى ضوضاء بيتعوّد عليها الواحد ويعدّيها.
 const acknowledged = new Set(reg.dynamicTypes || []);
-const isAck = (expr) => [...acknowledged].some((a) => expr.startsWith(a));
-const unackDynamic = [...dynamic.keys()].filter((expr) => !isAck(expr));
+const unackDynamic = [...dynamic.keys()].filter((expr) => !acknowledged.has(expr));
 
 const fail = unregistered.length > 0 || badVocab.length > 0
           || unackDynamic.length > 0 || blindSpans.length > 0;
@@ -443,17 +444,17 @@ if (badVocab.length) {
 if (unackDynamic.length) {
   console.log('🔴 قيم ديناميكية مش معترَف بيها — راجع كل قيمة ممكنة تطلع منها،');
   console.log('   سجّلها في types، وضيف التعبير في dynamicTypes:');
-  for (const expr of unackDynamic) console.log(`   ${[...dynamic.get(expr)].join(' · ')}  →  ${expr.slice(0, 110)}`);
+  for (const expr of unackDynamic) console.log(`   ${[...dynamic.get(expr)].join(' · ')}  →  ${expr}`);
   console.log('');
 }
 if (blindSpans.length) {
   console.log('🔴 نداء كتابة لوج مفيهوش أي مفتاح type — الاستخراج فشل، مش الكود:');
   console.log(`   ${blindSpans.join(' · ')}\n`);
 }
-const ackDynamic = [...dynamic.keys()].filter(isAck);
+const ackDynamic = [...dynamic.keys()].filter((e) => acknowledged.has(e));
 if (ackDynamic.length) {
   console.log('⚠️  قيم ديناميكية معترَف بيها (الحارس وقت التشغيل هو اللي بيغطّيها):');
-  for (const expr of ackDynamic) console.log(`   ${[...dynamic.get(expr)].join(' · ')}  →  ${expr.slice(0, 110)}`);
+  for (const expr of ackDynamic) console.log(`   ${[...dynamic.get(expr)].join(' · ')}  →  ${expr}`);
   console.log('');
 }
 if (spreads.size) {

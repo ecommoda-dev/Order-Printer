@@ -40,7 +40,6 @@
     }
   },
   "dynamicTypes": [
-    "logType",
-    "resolved.type"
+    "logType"
   ]
 }

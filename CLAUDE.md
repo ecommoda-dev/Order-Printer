@@ -885,11 +885,13 @@ git show 0f99338:Indexv-iframe.html
   بس ماكانوش مسجّلين في `log-values.json` خالص — التسجيل القديم غطّى بس
   `login`/`logout`/`not_found`/`update`. اتسجّلوا التلاتة دلوقتي في
   `types` بالقيم الممكنة (`success`/`warning`/`error`).
-- ⚠️ **`dynamicTypes` فيها اعتراف بحالة كاذبة (`resolved.type`)** — التشيك
-  المصلَّح بيلخبط `${type}` جوّه template literal (في سطر `notes` بتاع صف
-  `metafields_change`) بـ object shorthand، لأنه نص-محور ومالوش scope حقيقي.
-  مش قيمة `type` فعلية بتتكتب في D1 — اتسجّلت في `dynamicTypes` عشان التشيك
-  مايفضلش يعلّق عليها، من غير أي تعديل على الكود التشغيلي ولا على التشيك نفسه.
+- ⚠️ **باج في أول نسخة من التشيك المصلَّح** — `RE_TYPE_SHORT` كانت بتلخبط
+  `${type}` جوّه template literal (في سطر `notes` بتاع صف `metafields_change`،
+  `index.js:2101` وقتها) بـ object shorthand، لأنه نص-محور ومالوش scope
+  حقيقي، فطلعت كـ`resolved.type` ديناميكية وهمية. **اتصلّح في التشيك نفسه**
+  (negative lookbehind `(?<!\$)` قبل `[{,]`) — مش في `dynamicTypes` ولا في
+  الكود التشغيلي. `dynamicTypes` فيها `logType` بس دلوقتي، وهي القيمة
+  الحقيقية الوحيدة.
 - ✅ **صفر تغيير في منطق تشغيلي.** `WORKER_VERSION` اترفعت لـ `2.8.3` (patch)
   — البند ده مراقبة بس، مفيش endpoint ولا عقد اتغيّر. `MIN_WORKER_VERSION`
   في الأداة المستقلة **ما اترفعش**.
