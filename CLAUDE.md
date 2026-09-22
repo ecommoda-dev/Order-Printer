@@ -847,12 +847,12 @@ git show 0f99338:Indexv-iframe.html
 
 | المهارة | الإصدار وقت آخر تعديل |
 |---|---|
-| ecommoda-worker-builder | v2.0.0 |
+| ecommoda-worker-builder | v3.7.0 (الحارس الديناميكي لقيم اللوج — Step 7-ج) |
 | ecommoda-html-builder | v6.3.0 |
 | ecommoda-order-lifecycle | v1.3.0 |
-| ecommoda-constants | v1.6.0 (مجموعات السر §6) |
+| ecommoda-constants | v3.1.0 (`log_value_alerts` §2) |
 
-آخر مطابقة: 14-09-2026 · `index.js` v2.8.1 · `index.html` v3.5.1 (**مجمّدة على قاهرة+جيزة**)
+آخر مطابقة: 22-09-2026 · `index.js` v2.8.3 · `index.html` v3.5.1 (**مجمّدة على قاهرة+جيزة**)
 
 ## مسائل مفتوحة
 
@@ -868,6 +868,31 @@ git show 0f99338:Indexv-iframe.html
   (`data-table-standard` § 7 بيسمح بالحالة دي بشرط التوثيق — وده التوثيق).
   لو السجل كبر لدرجة إن السقف بقى بيتقص كتير، القرار يتراجع.
 - **تضييق `Build watch paths`** على `index.js` + `wrangler.toml` (§13-ب).
+
+### ✅ اتضاف في Worker v2.8.3 (22-09-2026) — الحارس الديناميكي لقيم اللوج
+
+- **`check-log-values.mjs` اتستبدل بالنسخة المصلَّحة** — النسخة القديمة كانت
+  بتدوّر على `type:` بنقطتين بس، فـ object shorthand (`{ tool, type }`) كان
+  بيعدّي في صمت وبيدّي `exit 0` وهو شايف جزء من القيم بس. النسخة الجديدة
+  بتمسك الشورت-هاند + المفتاح المحسوب + الـ spread، وبتستثني `tests/` من المسح.
+- **الحارس الديناميكي (`ecommoda-worker-builder` Step 7-ج · الطبقة ٥) اتحطّ في
+  `writeLog`** — `LOG_REGISTRY` جوّه §LOG-REG، مفتاحه الزوج `(tool, type)`.
+  🔴 **مفيش رفض كتابة أبدًا**: قيمة غير مسجّلة بتتكتب عادي + `extra._unregistered`
+  + UPSERT صامت في `log_value_alerts` (الجدول مشترك، اتعمل مرة واحدة على مستوى
+  الستاك — الأداة دي ما عملتش `CREATE TABLE`).
+- **التشغيل المصلَّح كشف تسجيل ناقص من زمان:** `S1` و`S2` و`AWB` بيتكتبوا فعليًا
+  كقيمة `type` (عبر `logType` الديناميكي في `handleTrack`) من v2.0.0/v2.5.0،
+  بس ماكانوش مسجّلين في `log-values.json` خالص — التسجيل القديم غطّى بس
+  `login`/`logout`/`not_found`/`update`. اتسجّلوا التلاتة دلوقتي في
+  `types` بالقيم الممكنة (`success`/`warning`/`error`).
+- ⚠️ **`dynamicTypes` فيها اعتراف بحالة كاذبة (`resolved.type`)** — التشيك
+  المصلَّح بيلخبط `${type}` جوّه template literal (في سطر `notes` بتاع صف
+  `metafields_change`) بـ object shorthand، لأنه نص-محور ومالوش scope حقيقي.
+  مش قيمة `type` فعلية بتتكتب في D1 — اتسجّلت في `dynamicTypes` عشان التشيك
+  مايفضلش يعلّق عليها، من غير أي تعديل على الكود التشغيلي ولا على التشيك نفسه.
+- ✅ **صفر تغيير في منطق تشغيلي.** `WORKER_VERSION` اترفعت لـ `2.8.3` (patch)
+  — البند ده مراقبة بس، مفيش endpoint ولا عقد اتغيّر. `MIN_WORKER_VERSION`
+  في الأداة المستقلة **ما اترفعش**.
 
 ### ✅ اتضاف في v3.5.1 / Worker v2.4.0 (قرار أحمد 06-09-2026)
 
@@ -987,7 +1012,8 @@ backoff على فشل شبكة/٤٢٩/٥xx، بدل محاولة واحدة بس
 - ~~**R12** — `compatibility_date` غير موحّد~~ — اتحرّك لـ 2026-09-03 بعد فحص
   الأعلام على الكود الفعلي (القسم فوق). **مش** «فاتساب» زي ما كان مكتوب هنا.
 
-آخر تحديث: 19-09-2026 — v2.8.2 (`getAccessToken` retry/backoff — §٨② في
-`docs/query-cost-experiment.md` بريبو الهب)
+آخر تحديث: 22-09-2026 — v2.8.3 (الحارس الديناميكي لقيم اللوج + استبدال
+`check-log-values.mjs` بالنسخة المصلَّحة — `ecommoda-worker-builder` v3.7.0
+Step 7-ج)
 
 </div>
