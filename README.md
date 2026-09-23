@@ -23,7 +23,7 @@
 | `index.js` | كود الـ Cloudflare Worker — بينشر أوتوماتيك على `main` |
 | `wrangler.toml` | اسم الـ Worker + D1 binding + `[vars]` |
 | `index.html` | الواجهة — بتتنشر على GitHub Pages |
-| `Index.html` | صفحة تحويل للروابط القديمة (بلا أي منطق) |
+| ~~`Index.html`~~ | اتشالت — 23-09-2026، قرار أحمد. الرابط الوحيد: `https://ecommoda-dev.github.io/Order-Printer/` |
 | `CLAUDE.md` | قواعد الأداة — بتتحمّل في كل جلسة Claude |
 
 ## النشر
