@@ -2,7 +2,7 @@
 
 # طابعة الفواتير (`Order-Printer`)
 
-![version](https://img.shields.io/badge/worker-v2.8.2-blue) ![version](https://img.shields.io/badge/ui-v3.5.1-lightgrey)
+![version](https://img.shields.io/badge/worker-v2.9.0-blue) ![version](https://img.shields.io/badge/ui-v3.5.1-lightgrey)
 
 **بتعمل إيه:** الموظف بيسجّل دخول بـ PIN، بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
@@ -44,6 +44,7 @@
 | `GET ?action=check_employee` · `POST register_pin` · `POST verify_employee` | Universal D1 Auth |
 | `GET ?action=log_logout` · `GET ?action=get_employees` | Universal D1 Auth |
 | `GET ?action=get_logs` · `get_logs_count` · `get_logs_export` | سجل العمليات القياسي |
+| `GET ?action=get_done_counts` | **(v2.9.0)** «اللي خلص النهارده / أمس» جاهز: أوردرات **مميزة** لكل يوم قاهرة (UTC+3) في SQL واحد — `{ today, yesterday, counts:{today,yesterday} }`. التعريف: `type ∈ S1/S2/AWB` و`extra.result.status ≠ error`. قراءة بحتة، والهب (§HOME-DONE) بيقراه ولو مش موجود بيرجع لتصفيح `get_logs` |
 | `GET ?action=diag` | فحص ذاتي بدون كتابة — متغيرات · D1 · موظفين · OAuth · صلاحيات · Origin |
 | `GET ?action=get_config` | `WORKER_VERSION` — الواجهة بتقارنه بـ `MIN_WORKER_VERSION` |
 
