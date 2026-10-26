@@ -254,7 +254,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.10.0';
+const WORKER_VERSION = '2.11.0';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -1598,7 +1598,7 @@ async function handleLookup(request, env) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// §WHEREABOUTS — حارس «عهدة الطرد لازم تكون فاضية قبل الطباعة» (v2.10.0)
+// §WHEREABOUTS — حارس «عهدة الطرد لازم تكون فاضية أو Warehouse قبل الطباعة» (v2.10.0 · v2.11.0)
 // ══════════════════════════════════════════════════════════════
 //
 // قرار أحمد 26-10-2026: أوردر على ماكينته ميتافيلد عهدة الطرد **فيها قيمة**
@@ -1614,8 +1614,10 @@ async function handleLookup(request, env) {
 //    كدب ومايطلّعش ورق.
 // 🔴 **الماكينة بس:** S1 بيتفحص `_s1` وS2 بيتفحص `_s2`. أوردر S2 طرده
 //    الأصلي (`_s1`) خرج بالتأكيد — فحصه كان هيوقّف كل S2 دايمًا.
-// 🔴 **«فاضي» = الميتافيلد مش موجود أو القيمة فاضية/مسافات.** أي حاجة تانية
-//    فيها قيمة. أوردر ما اتقراش (مش راجع من شوبيفاي) = `verified: false`،
+// 🔴 **المسموح (من v2.11.0 · قرار أحمد 26-10-2026):** الميتافيلد فاضي (مش
+//    موجود أو مسافات) **أو** قيمته `Warehouse` (الطرد في المخزن أصلاً — مقارنة
+//    بعد trim وبلا حساسية لحالة الحروف). أي قيمة تانية (`Office` · `Courier` ·
+//    غريبة) = موقوف. أوردر ما اتقراش (مش راجع من شوبيفاي) = `verified: false`،
 //    والواجهة بتوقفه — «مش متأكد» مش «فاضي» (قرار أحمد).
 const WHEREABOUTS_KEY = { S1: 'package_whereabouts_s1', S2: 'package_whereabouts_s2' };
 const WHEREABOUTS_MAX_ORDERS = 250;
@@ -1635,6 +1637,10 @@ const WHEREABOUTS_QUERY = `
 // الحكم في دالة واحدة. `raw` = القيمة الخام من شوبيفاي (أو undefined/null).
 function isWhereaboutsEmpty(raw) {
   return raw === undefined || raw === null || String(raw).trim() === '';
+}
+// مسموح بالطباعة: فاضي أو `Warehouse` (v2.11.0).
+function isWhereaboutsAllowed(raw) {
+  return isWhereaboutsEmpty(raw) || String(raw).trim().toLowerCase() === 'warehouse';
 }
 
 async function handleWhereaboutsPrecheck(request, env) {
@@ -1688,12 +1694,13 @@ async function handleWhereaboutsPrecheck(request, env) {
     }
     const raw     = (w.type === 'S2' ? node.whereabouts_s2 : node.whereabouts_s1)?.value;
     const empty   = isWhereaboutsEmpty(raw);
+    const allowed = isWhereaboutsAllowed(raw);
     return {
       id: w.id, name: node.name, machine: w.type, key: `custom.${key}`,
       verified: true,
-      blocked:  !empty,
+      blocked:  !allowed,
       value:    empty ? null : String(raw),
-      reason:   empty ? null : 'has_value',
+      reason:   allowed ? null : 'has_value',
       // للعرض بس — الميتافيلد التاني (مش جزء من الحكم)
       other: {
         key:   `custom.${WHEREABOUTS_KEY[w.type === 'S2' ? 'S1' : 'S2']}`,
