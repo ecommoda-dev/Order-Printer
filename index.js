@@ -19,6 +19,7 @@
 //   POST /orders              → أوردرات S1 + S2 الجاهزة للطباعة
 //   POST /lookup              → أوردر **واحد** بعينه مهما كانت حالته (إعادة طباعة)
 //   POST /invoice             → بيانات فاتورة أوردر واحد
+//   POST /precheck-whereabouts → (v2.10.0) فحص عهدة الطرد (`package_whereabouts_s1/_s2` حسب الماكينة) قبل الطباعة — قراءة بحتة
 //   POST /track               → تسجيل الطباعة + تاج + ميتافيلد الوقت + الحالة Ready
 //   POST /logs                → سجل الطباعة (بعدّاد الطباعة لكل أوردر)
 //   POST ?action=bosta_lookup → تحويل أرقام أوردرات لشحنات بوسطة **لكل ماكينة** (قراءة بحتة + not_found)
@@ -253,7 +254,7 @@
 // §CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const TOOL_NAME      = 'order_printer';
-const WORKER_VERSION = '2.9.1';
+const WORKER_VERSION = '2.10.0';
 
 const DATE_FROM   = '2026-04-01';
 
@@ -1596,6 +1597,119 @@ async function handleLookup(request, env) {
   }, 200, request);
 }
 
+// ══════════════════════════════════════════════════════════════
+// §WHEREABOUTS — حارس «عهدة الطرد لازم تكون فاضية قبل الطباعة» (v2.10.0)
+// ══════════════════════════════════════════════════════════════
+//
+// قرار أحمد 26-10-2026: أوردر على ماكينته ميتافيلد عهدة الطرد **فيها قيمة**
+// (`custom.package_whereabouts_s1` لـ S1 · `custom.package_whereabouts_s2`
+// لـ S2) = الطرد موجود فعلاً في مكان تاني (مكتب · مندوب · مخزن بعد رجوع)،
+// فالطباعة بتتوقف **للأوردر ده بس** والباقي بيكمّل.
+//
+// 🔴 **قراءة بحتة** — صفر ميوتيشن وصفر صف D1 (قرار أحمد: بدون تسجيل). الأثر
+//    الوحيد للإيقاف هو نافذة النتايج في الواجهة.
+// 🔴 **بيتنادى لحظة الطباعة** مش من لقطة الطابور — لقطة عمرها ١٥ دقيقة
+//    ممكن تقول «فاضي» وطرد اتسجّل في المكتب من دقيقتين. وبيتنادى **قبل**
+//    `bosta_lookup`/`/invoice`/`/track` عشان الموقوف مايكتبش `not_found`
+//    كدب ومايطلّعش ورق.
+// 🔴 **الماكينة بس:** S1 بيتفحص `_s1` وS2 بيتفحص `_s2`. أوردر S2 طرده
+//    الأصلي (`_s1`) خرج بالتأكيد — فحصه كان هيوقّف كل S2 دايمًا.
+// 🔴 **«فاضي» = الميتافيلد مش موجود أو القيمة فاضية/مسافات.** أي حاجة تانية
+//    فيها قيمة. أوردر ما اتقراش (مش راجع من شوبيفاي) = `verified: false`،
+//    والواجهة بتوقفه — «مش متأكد» مش «فاضي» (قرار أحمد).
+const WHEREABOUTS_KEY = { S1: 'package_whereabouts_s1', S2: 'package_whereabouts_s2' };
+const WHEREABOUTS_MAX_ORDERS = 250;
+
+const WHEREABOUTS_QUERY = `
+  query OrderWhereabouts($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Order {
+        id name
+        whereabouts_s1: metafield(namespace: "custom", key: "package_whereabouts_s1") { value }
+        whereabouts_s2: metafield(namespace: "custom", key: "package_whereabouts_s2") { value }
+      }
+    }
+  }
+`;
+
+// الحكم في دالة واحدة. `raw` = القيمة الخام من شوبيفاي (أو undefined/null).
+function isWhereaboutsEmpty(raw) {
+  return raw === undefined || raw === null || String(raw).trim() === '';
+}
+
+async function handleWhereaboutsPrecheck(request, env) {
+  assertEnv(env, 'shopify');
+  const body = await request.json().catch(() => null);
+  const input = Array.isArray(body?.orders) ? body.orders : null;
+  if (!input || !input.length) return json({ error: 'orders مطلوبة (مصفوفة {id, type})' }, 400, request);
+  if (input.length > WHEREABOUTS_MAX_ORDERS) {
+    return json({ error: `الحد الأقصى ${WHEREABOUTS_MAX_ORDERS} أوردر في النداء` }, 400, request);
+  }
+
+  const wanted = [];
+  for (const o of input) {
+    const id   = o?.id != null ? String(o.id).trim() : '';
+    const type = o?.type;
+    if (!id) return json({ error: 'كل أوردر لازم يكون له id' }, 400, request);
+    if (type !== 'S1' && type !== 'S2') {
+      return json({ error: `type غير صالح للأوردر ${id}: "${type}" — المسموح S1 أو S2` }, 400, request);
+    }
+    wanted.push({ gid: id.startsWith('gid://') ? id : `gid://shopify/Order/${id}`, id, type });
+  }
+
+  // شرايح ٢٥ زي `fetchOrderItems`. فشل أي خطوة (OAuth أو شريحة) = رد 502
+  // **برسالة السبب** والواجهة بتوقف الدفعة كلها («مش متأكد» مش «فاضي»).
+  // ⚠️ try/catch هنا **جوّه** الدالة: الراوتر بيعمل `return handler()` من
+  //    غير `await`، فاستثناء الـ promise بيعدّي من try بتاعه — ورد 500 من
+  //    غير ترويسات CORS بيبان للمتصفح «تعذّر الوصول» من غير السبب.
+  const found = {};
+  try {
+    const token = await getAccessToken(env);
+    const uniq  = [...new Set(wanted.map(w => w.gid))];
+    for (let i = 0; i < uniq.length; i += ITEMS_ORDERS_PER_QUERY) {
+      const slice = uniq.slice(i, i + ITEMS_ORDERS_PER_QUERY);
+      const data  = await shopifyGQL(env, token, WHEREABOUTS_QUERY, { ids: slice },
+                                     `whereabouts_${i / ITEMS_ORDERS_PER_QUERY + 1}`);
+      for (const node of (data?.data?.nodes || [])) {
+        if (node?.id) found[node.id] = node;
+      }
+    }
+  } catch (e) {
+    return json({ ok: false, error: `تعذّر قراءة عهدة الطرد من شوبيفاي — ${e.message}` }, 502, request);
+  }
+
+  const results = wanted.map(w => {
+    const node = found[w.gid];
+    const key  = WHEREABOUTS_KEY[w.type];
+    if (!node) {
+      return { id: w.id, machine: w.type, key: `custom.${key}`, verified: false, blocked: true,
+               value: null, name: null,
+               reason: 'unverified' };   // الأوردر ما رجعش من شوبيفاي
+    }
+    const raw     = (w.type === 'S2' ? node.whereabouts_s2 : node.whereabouts_s1)?.value;
+    const empty   = isWhereaboutsEmpty(raw);
+    return {
+      id: w.id, name: node.name, machine: w.type, key: `custom.${key}`,
+      verified: true,
+      blocked:  !empty,
+      value:    empty ? null : String(raw),
+      reason:   empty ? null : 'has_value',
+      // للعرض بس — الميتافيلد التاني (مش جزء من الحكم)
+      other: {
+        key:   `custom.${WHEREABOUTS_KEY[w.type === 'S2' ? 'S1' : 'S2']}`,
+        value: (() => { const v = (w.type === 'S2' ? node.whereabouts_s1 : node.whereabouts_s2)?.value;
+                        return isWhereaboutsEmpty(v) ? null : String(v); })(),
+      },
+    };
+  });
+
+  return json({
+    ok: true, results,
+    blockedCount: results.filter(r => r.blocked).length,
+    checkedAt: new Date().toISOString(),
+  }, 200, request);
+}
+
 // ─── §PRINT::handleInvoice ───
 const INVOICE_QUERY = `
   query GetInvoice($id: ID!) {
@@ -2780,6 +2894,7 @@ export default {
       if (method === 'POST' && path === '/orders')  return handleOrders(request, env);
       if (method === 'POST' && path === '/lookup')  return handleLookup(request, env);
       if (method === 'POST' && path === '/invoice') return handleInvoice(request, env);
+      if (method === 'POST' && path === '/precheck-whereabouts') return handleWhereaboutsPrecheck(request, env);
       if (method === 'POST' && path === '/track')   return handleTrack(request, env);
       if (method === 'POST' && path === '/logs')    return handleLogs(request, env);
       // ─── §BOSTA (action routing — الشكل القياسي للجديد) ───────
