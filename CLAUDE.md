@@ -2,11 +2,11 @@
 
 # طابعة الفواتير (`Order-Printer`)
 
-![version](https://img.shields.io/badge/worker-v2.10.0-blue) ![version](https://img.shields.io/badge/ui-v3.5.1-lightgrey)
+![version](https://img.shields.io/badge/worker-v2.11.0-blue) ![version](https://img.shields.io/badge/ui-v3.5.1-lightgrey)
 
 **بتعمل إيه:** الموظف بيسجّل دخول بـ PIN، بيختار أوردرات جاهزة للطباعة (S1 عادي · S2 استبدال/استرجاع)، بيطبع فواتيرها، والأداة بتسجّل الطباعة باسمه وبتحدّث حالة الأوردر لـ `Ready`.
 **مين بيستخدمها:** مخزن
-**الإصدار:** Worker `v2.10.0` · الواجهة `v3.5.1` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.3.0`   ← **مافيش ترفيع**، السبب تحت
+**الإصدار:** Worker `v2.11.0` · الواجهة `v3.5.1` (`TOOL_VERSION`) · `MIN_WORKER_VERSION = 2.3.0`   ← **مافيش ترفيع**، السبب تحت
 
 > 🔴 **الواجهة المستقلة `index.html` مجمّدة على قاهرة+جيزة** (قرار أحمد
 > 07-09-2026). قناة بوسطة اتضافت في **الهب بس** (`Warehouse-Operations-Center/print.html`).
@@ -44,7 +44,7 @@
 | `GET ?action=check_employee` · `POST register_pin` · `POST verify_employee` | Universal D1 Auth |
 | `GET ?action=log_logout` · `GET ?action=get_employees` | Universal D1 Auth |
 | `GET ?action=get_logs` · `get_logs_count` · `get_logs_export` | سجل العمليات القياسي |
-| `POST /precheck-whereabouts` | **(v2.10.0)** فحص عهدة الطرد قبل الطباعة: بياخد `orders:[{id,type}]` (حد أقصى ٢٥٠) وبيرجّع لكل أوردر `{verified, blocked, value, key, other}` — بيفحص **ميتافيلد ماكينة الأوردر بس** (`package_whereabouts_s1` لـ S1 · `_s2` لـ S2). **قراءة بحتة** — صفر كتابة وصفر D1. فشل شوبيفاي = `502` برسالة السبب |
+| `POST /precheck-whereabouts` | **(v2.10.0 · المسموح فاضي أو `Warehouse` من v2.11.0)** فحص عهدة الطرد قبل الطباعة: بياخد `orders:[{id,type}]` (حد أقصى ٢٥٠) وبيرجّع لكل أوردر `{verified, blocked, value, key, other}` — بيفحص **ميتافيلد ماكينة الأوردر بس** (`package_whereabouts_s1` لـ S1 · `_s2` لـ S2). **قراءة بحتة** — صفر كتابة وصفر D1. فشل شوبيفاي = `502` برسالة السبب |
 | `GET ?action=get_done_counts` | **(v2.9.0)** «اللي خلص النهارده / أمس» جاهز: أوردرات **مميزة** لكل يوم قاهرة (محسوب بـ Intl على Africa/Cairo — يتبع التوقيت الصيفي، من 2.9.1) في SQL واحد — `{ today, yesterday, counts:{today,yesterday} }`. التعريف: `type ∈ S1/S2/AWB` و`extra.result.status ≠ error`. قراءة بحتة، والهب (§HOME-DONE) بيقراه ولو مش موجود بيرجع لتصفيح `get_logs` |
 | `GET ?action=diag` | فحص ذاتي بدون كتابة — متغيرات · D1 · موظفين · OAuth · صلاحيات · Origin |
 | `GET ?action=get_config` | `WORKER_VERSION` — الواجهة بتقارنه بـ `MIN_WORKER_VERSION` |
@@ -873,13 +873,14 @@ git show 0f99338:Indexv-iframe.html
 
 ### 🚫 §WHEREABOUTS — حارس عهدة الطرد — Worker v2.10.0 (قرار أحمد 26-10-2026)
 
-الأوردر اللي ميتافيلد عهدة الطرد **بتاع ماكينته** فيه قيمة = الطرد موجود فعلاً في مكان تاني، فالطباعة بتتوقف **للأوردر ده بس** والباقي بيكمّل. الحكم في الـ Worker (`POST /precheck-whereabouts` · `isWhereaboutsEmpty` · `WHEREABOUTS_KEY`) والواجهة في `Warehouse-Operations-Center/Order-Printer.html` (§WHEREABOUTS-GUARD).
+الأوردر اللي ميتافيلد عهدة الطرد **بتاع ماكينته** فيه قيمة **غير `Warehouse`** (مثلاً `Office`/`Courier`) = الطرد موجود فعلاً في مكان تاني، فالطباعة بتتوقف **للأوردر ده بس** والباقي بيكمّل. الحكم في الـ Worker (`POST /precheck-whereabouts` · `isWhereaboutsEmpty` · `WHEREABOUTS_KEY`) والواجهة في `Warehouse-Operations-Center/Order-Printer.html` (§WHEREABOUTS-GUARD).
 
 - 🔴 **الماكينة بس** — S1 بيتفحص `custom.package_whereabouts_s1` وS2 `custom.package_whereabouts_s2`. ⛔ مش الحقلين مع بعض: طرد S2 الأصلي (`_s1`) خرج بالتأكيد، وفحصه كان هيوقّف كل S2 دايمًا. الميتافيلد التاني بيرجع في `other` **للعرض بس** (مش جزء من الحكم).
 - 🔴 **«فاضي»** = الميتافيلد مش موجود أو القيمة فاضية/مسافات بس. أي قيمة تانية موقوفة.
 - 🔴 **«مش متأكد» = متوقف:** أوردر ما رجعش من شوبيفاي → `verified:false, blocked:true`. وفشل شوبيفاي/OAuth → `502` والواجهة بتوقف الدفعة بالسبب.
 - ⚠️ **الـ try/catch جوّه الدالة** عن قصد: الراوتر بيعمل `return handler()` من غير `await`، فاستثناء الـ promise بيعدّي من try بتاعه ويطلع 500 من غير ترويسات CORS (المتصفح بيقول «تعذّر الوصول» من غير السبب).
 - ⛔ **قراءة بحتة وصفر تسجيل D1** — لا `type` جديد ولا تعديل `log-values.json`. و**الراوتر مفيهوش `await` فيه** زي باقي الـ handlers.
+- 🔴 **v2.11.0 (قرار أحمد 26-10-2026): المسموح = فاضي أو `Warehouse`** (`isWhereaboutsAllowed` — trim وبلا حساسية لحالة الحروف). أي قيمة تانية موقوفة. `value` لسه بيرجع للعرض حتى لو `Warehouse`. ⚠️ **Promote إلزامي لـ v2.11.0** — على v2.10.0 الأوردر اللي عليه `Warehouse` لسه بيتوقف.
 - ⛔ **النسخة المستقلة (`index.html`) ما اتلمستش** (قرار أحمد) ومابتنادي الـ endpoint ده — يعني ممكن تتجاوز الحارس لو اتستخدمت كنقطة رجوع. `MIN_WORKER_VERSION` هنا **ما اترفعش**؛ الهب هو اللي رفع `printer.min` لـ `2.10.0`.
 - 🔴 **Promote إلزامي** — من غيره الهب بيوقف كل أوردر («مش متأكد» = متوقف).
 - ✅ اتجرّب بـ fetch وهمي: فاضي/Office/Warehouse/مسافات · S1 مقابل S2 · أوردر ما رجعش · فشل شوبيفاي (502) · مدخلات غلط (400). ⚠️ ما اتجرّب على شوبيفاي حقيقي.
