@@ -2,6 +2,8 @@
 
 # طابعة الفواتير — Order Printer
 
+> 🗑️ **18-11-2026 — الواجهة المستقلة اتحذفت** (قرار أحمد). الريبو ده بقى **Worker فقط**، والواجهة الوحيدة هي `Order-Printer.html` في `Warehouse-Operations-Center`. رابط GitHub Pages القديم بيدّي `404` **بلا إعادة توجيه** بقرار. أي إشارة تحت لـ«الواجهة المستقلة» أو `index.html` بتوصف الوضع قبل الحذف (تاريخية).
+
 ![version](https://img.shields.io/badge/version-v3.2.0-blue)
 
 أداة داخلية لـ EcomModa: الموظف بيسجّل دخول بـ PIN، بيختار الأوردرات الجاهزة
@@ -13,7 +15,6 @@
 
 | | |
 |---|---|
-| الواجهة | <https://ecommoda-dev.github.io/Order-Printer/> |
 | الـ Worker | <https://order-printer-worker.ecommoda-dev.workers.dev> |
 
 ## بنية الريبو
@@ -22,15 +23,14 @@
 |---|---|
 | `index.js` | كود الـ Cloudflare Worker — بينشر أوتوماتيك على `main` |
 | `wrangler.toml` | اسم الـ Worker + D1 binding + `[vars]` |
-| `index.html` | الواجهة — بتتنشر على GitHub Pages |
+| ~~`index.html`~~ | اتشالت — 18-11-2026، الواجهة في الهب (`Order-Printer.html`) |
 | ~~`Index.html`~~ | اتشالت — 23-09-2026، قرار أحمد. الرابط الوحيد: `https://ecommoda-dev.github.io/Order-Printer/` |
 | `CLAUDE.md` | قواعد الأداة — بتتحمّل في كل جلسة Claude |
 
 ## النشر
 
 ```
-git push على main  ─┬─→  Workers Builds  →  الـ Worker لايف (~٢٣ ثانية)
-                    └─→  GitHub Pages    →  الواجهة لايف (أبطأ — دقيقة–اتنين)
+git push على main  ───→  Workers Builds  →  الـ Worker لايف (~٢٣ ثانية)
 ```
 
 ⛔ **ممنوع اللصق في داشبورد Cloudflare بعد الربط** — أول push جاي بيمسحه.
